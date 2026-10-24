@@ -22,7 +22,9 @@ void main() async {
 
 class HardcorezForgeApp extends StatelessWidget {
   final bool showSplash;
-  static final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.light);
+  static final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(
+    ThemeMode.light,
+  );
 
   const HardcorezForgeApp({super.key, this.showSplash = true});
 
@@ -43,4 +45,3 @@ class HardcorezForgeApp extends StatelessWidget {
     );
   }
 }
-

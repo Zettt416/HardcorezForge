@@ -148,9 +148,15 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   List<DocumentModel> get _filteredDocs {
     return _allCombinedDocs.where((doc) {
+      final ext = doc.filePath?.split('.').last.toLowerCase() ?? '';
+      final isMd = ext == 'md' || doc.title.toLowerCase().endsWith('.md');
+
       // Filter Category
       if (_selectedFilter == 'device' && doc.filePath == null) return false;
-      if (_selectedFilter == 'word' && doc.type != DocType.word) return false;
+      if (_selectedFilter == 'md' && !isMd) return false;
+      if (_selectedFilter == 'word' && (doc.type != DocType.word || isMd)) {
+        return false;
+      }
       if (_selectedFilter == 'sheet' && doc.type != DocType.sheet) return false;
       if (_selectedFilter == 'presentation' &&
           doc.type != DocType.presentation) {
@@ -163,7 +169,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       if (_searchQuery.isNotEmpty) {
         final query = _searchQuery.toLowerCase();
         final matchTitle = doc.title.toLowerCase().contains(query);
-        final matchExt = doc.type.extension.toLowerCase().contains(query);
+        final matchExt = (isMd ? 'md' : doc.type.extension.toLowerCase())
+            .contains(query);
         return matchTitle || matchExt;
       }
       return true;
@@ -234,6 +241,24 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
 
     await _repo.saveDocument(newDoc);
+    setState(() {});
+    _openDocument(newDoc);
+  }
+
+  void _createNewMarkdownDoc() async {
+    final now = DateTime.now();
+    final newDoc = DocumentModel(
+      id: 'doc_${now.millisecondsSinceEpoch}',
+      title: 'Catatan Markdown Baru.md',
+      type: DocType.word,
+      updatedAt: now,
+      createdAt: now,
+      content: '# Judul Catatan\n\nTulis isi catatan markdown di sini...\n',
+      sizeInBytes: 0,
+    );
+
+    await _repo.saveDocument(newDoc);
+    if (!mounted) return;
     setState(() {});
     _openDocument(newDoc);
   }
@@ -790,7 +815,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         showAboutDialog(
                           context: context,
                           applicationName: 'HardcorezForge',
-                          applicationVersion: '1.0.3',
+                          applicationVersion: '1.0.4',
                           applicationIcon: Image.asset(
                             'assets/images/app_logo.png',
                             width: 44,
@@ -857,63 +882,67 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     },
                     child: Column(
                       children: [
-                        // Quick Tools 4-Module Card Strip
-                        Padding(
+                        // Quick Tools Module Carousel (Horizontal Slider)
+                        SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          physics: const BouncingScrollPhysics(),
                           padding: const EdgeInsets.fromLTRB(16, 6, 16, 10),
                           child: Row(
                             children: [
-                              Expanded(
-                                child: _buildQuickModuleCard(
-                                  icon: Icons.article_rounded,
-                                  color: AppTheme.docBlue,
-                                  bgColor: isDark
-                                      ? const Color(0xFF131D33)
-                                      : AppTheme.docBlueLight,
-                                  label: 'Word',
-                                  tag: '.docx',
-                                  onTap: () => _createNewDocument(DocType.word),
-                                ),
+                              _buildQuickModuleCard(
+                                icon: Icons.article_rounded,
+                                color: AppTheme.docBlue,
+                                bgColor: isDark
+                                    ? const Color(0xFF131D33)
+                                    : AppTheme.docBlueLight,
+                                label: 'Word',
+                                tag: '.docx',
+                                onTap: () => _createNewDocument(DocType.word),
                               ),
                               const SizedBox(width: 8),
-                              Expanded(
-                                child: _buildQuickModuleCard(
-                                  icon: Icons.table_chart_rounded,
-                                  color: AppTheme.sheetGreen,
-                                  bgColor: isDark
-                                      ? const Color(0xFF0D251D)
-                                      : AppTheme.sheetGreenLight,
-                                  label: 'Excel',
-                                  tag: '.xlsx',
-                                  onTap: () =>
-                                      _createNewDocument(DocType.sheet),
-                                ),
+                              _buildQuickModuleCard(
+                                icon: Icons.table_chart_rounded,
+                                color: AppTheme.sheetGreen,
+                                bgColor: isDark
+                                    ? const Color(0xFF0D251D)
+                                    : AppTheme.sheetGreenLight,
+                                label: 'Excel',
+                                tag: '.xlsx',
+                                onTap: () => _createNewDocument(DocType.sheet),
                               ),
                               const SizedBox(width: 8),
-                              Expanded(
-                                child: _buildQuickModuleCard(
-                                  icon: Icons.slideshow_rounded,
-                                  color: AppTheme.pptOrange,
-                                  bgColor: isDark
-                                      ? const Color(0xFF281810)
-                                      : AppTheme.pptOrangeLight,
-                                  label: 'PPT',
-                                  tag: '.pptx',
-                                  onTap: () =>
-                                      _createNewDocument(DocType.presentation),
-                                ),
+                              _buildQuickModuleCard(
+                                icon: Icons.slideshow_rounded,
+                                color: AppTheme.pptOrange,
+                                bgColor: isDark
+                                    ? const Color(0xFF281810)
+                                    : AppTheme.pptOrangeLight,
+                                label: 'PPT',
+                                tag: '.pptx',
+                                onTap: () =>
+                                    _createNewDocument(DocType.presentation),
                               ),
                               const SizedBox(width: 8),
-                              Expanded(
-                                child: _buildQuickModuleCard(
-                                  icon: Icons.draw_rounded,
-                                  color: const Color(0xFF7C3AED),
-                                  bgColor: isDark
-                                      ? const Color(0xFF1F1433)
-                                      : const Color(0xFFF5F3FF),
-                                  label: 'Tanda Tangan',
-                                  tag: 'PDF Sign',
-                                  onTap: _pickPdfToSign,
-                                ),
+                              _buildQuickModuleCard(
+                                icon: Icons.description_rounded,
+                                color: const Color(0xFF0284C7),
+                                bgColor: isDark
+                                    ? const Color(0xFF0C243B)
+                                    : const Color(0xFFE0F2FE),
+                                label: 'Markdown',
+                                tag: '.md',
+                                onTap: _createNewMarkdownDoc,
+                              ),
+                              const SizedBox(width: 8),
+                              _buildQuickModuleCard(
+                                icon: Icons.draw_rounded,
+                                color: const Color(0xFF7C3AED),
+                                bgColor: isDark
+                                    ? const Color(0xFF1F1433)
+                                    : const Color(0xFFF5F3FF),
+                                label: 'Tanda Tangan',
+                                tag: 'PDF Sign',
+                                onTap: _pickPdfToSign,
                               ),
                             ],
                           ),
@@ -1057,6 +1086,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                 'Word',
                                 Icons.article_rounded,
                                 color: AppTheme.docBlue,
+                              ),
+                              _buildSegmentedTab(
+                                'md',
+                                'Markdown',
+                                Icons.description_rounded,
+                                color: const Color(0xFF0284C7),
                               ),
                               _buildSegmentedTab(
                                 'sheet',
@@ -1295,6 +1330,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     required String label,
     required String tag,
     required VoidCallback onTap,
+    double width = 82,
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
@@ -1305,6 +1341,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         borderRadius: BorderRadius.circular(14),
         onTap: onTap,
         child: Container(
+          width: width,
           padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(14),
@@ -1432,9 +1469,17 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   Widget _buildDocCard(DocumentModel doc, bool isDark) {
-    final docColor = AppTheme.getDocColor(doc.type);
-    final docLightColor = AppTheme.getDocLightColor(doc.type);
-    final docIcon = AppTheme.getDocIcon(doc.type);
+    final ext = doc.filePath?.split('.').last.toLowerCase() ?? '';
+    final isMd = ext == 'md' || doc.title.toLowerCase().endsWith('.md');
+    final docColor = isMd
+        ? const Color(0xFF0284C7)
+        : AppTheme.getDocColor(doc.type);
+    final docLightColor = isMd
+        ? (isDark ? const Color(0xFF0C243B) : const Color(0xFFE0F2FE))
+        : AppTheme.getDocLightColor(doc.type);
+    final docIcon = isMd
+        ? Icons.description_rounded
+        : AppTheme.getDocIcon(doc.type);
     final isDeviceFile = doc.filePath != null;
 
     return Material(

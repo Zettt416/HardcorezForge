@@ -230,11 +230,46 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('README.md'), findsOneWidget);
-      expect(find.text('MARKDOWN READER'), findsOneWidget);
+      expect(find.text('MARKDOWN'), findsOneWidget);
       expect(find.text('HardcorezForge Office'), findsOneWidget);
       expect(find.text('Fitur Unggulan'), findsOneWidget);
       expect(find.text('Catatan penting privasi berkas.'), findsOneWidget);
       expect(find.text('Salin'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('Shows full title bottom sheet when header title is held', (
+      tester,
+    ) async {
+      const longTitle =
+          'Dokumen_Laporan_Akhir_Tahun_2026_Analisis_Komprehensif_HardcorezForge_Final_Revisi_V3.md';
+      final doc = DocumentModel(
+        id: 'md_long_title',
+        title: longTitle,
+        type: DocType.word,
+        updatedAt: DateTime.now(),
+        createdAt: DateTime.now(),
+        content: '# Test Konten\n\nIsi tes',
+        filePath: '/storage/emulated/0/Download/$longTitle',
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.lightTheme,
+          home: MarkdownReaderScreen(document: doc),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      // Long press on header title
+      await tester.longPress(find.text(longTitle));
+      await tester.pumpAndSettle();
+
+      // Verify bottom sheet appears with full title and copy button
+      expect(find.text('Nama Lengkap Dokumen'), findsOneWidget);
+      expect(find.text('Salin Nama Berkas'), findsOneWidget);
+      expect(find.text(longTitle), findsNWidgets(2)); // in header and sheet
       expect(tester.takeException(), isNull);
     });
   });

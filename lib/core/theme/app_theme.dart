@@ -104,10 +104,7 @@ class AppTheme {
         side: const BorderSide(color: darkBorder, width: 1),
       ),
     ),
-    dividerTheme: const DividerThemeData(
-      color: darkBorder,
-      thickness: 1,
-    ),
+    dividerTheme: const DividerThemeData(color: darkBorder, thickness: 1),
   );
 
   static ThemeData lightTheme = ThemeData(
@@ -141,9 +138,6 @@ class AppTheme {
         side: const BorderSide(color: lightBorder, width: 1),
       ),
     ),
-    dividerTheme: const DividerThemeData(
-      color: lightBorder,
-      thickness: 1,
-    ),
+    dividerTheme: const DividerThemeData(color: lightBorder, thickness: 1),
   );
 }

@@ -28,32 +28,35 @@ class PlacedSignature {
   });
 
   Map<String, dynamic> toMap() => {
-        'x': position.dx,
-        'y': position.dy,
-        'w': width,
-        'h': height,
-        'page': page,
-        'stamp': stampText,
-        'strokes':
-            strokes.map((s) => s.map((p) => p.toMap()).toList()).toList(),
-      };
+    'x': position.dx,
+    'y': position.dy,
+    'w': width,
+    'h': height,
+    'page': page,
+    'stamp': stampText,
+    'strokes': strokes.map((s) => s.map((p) => p.toMap()).toList()).toList(),
+  };
 
   factory PlacedSignature.fromMap(Map<String, dynamic> map) => PlacedSignature(
-        position: Offset(
-            (map['x'] as num).toDouble(), (map['y'] as num).toDouble()),
-        width: (map['w'] as num?)?.toDouble() ?? 160.0,
-        height: (map['h'] as num?)?.toDouble() ?? 70.0,
-        page: map['page'] as int? ?? 1,
-        stampText: map['stamp'] as String?,
-        isSelected: false,
-        strokes: (map['strokes'] as List<dynamic>?)
-                ?.map((s) => (s as List<dynamic>)
-                    .map((p) =>
-                        SignaturePoint.fromMap(p as Map<String, dynamic>))
-                    .toList())
-                .toList() ??
-            [],
-      );
+    position: Offset(
+      (map['x'] as num).toDouble(),
+      (map['y'] as num).toDouble(),
+    ),
+    width: (map['w'] as num?)?.toDouble() ?? 160.0,
+    height: (map['h'] as num?)?.toDouble() ?? 70.0,
+    page: map['page'] as int? ?? 1,
+    stampText: map['stamp'] as String?,
+    isSelected: false,
+    strokes:
+        (map['strokes'] as List<dynamic>?)
+            ?.map(
+              (s) => (s as List<dynamic>)
+                  .map((p) => SignaturePoint.fromMap(p as Map<String, dynamic>))
+                  .toList(),
+            )
+            .toList() ??
+        [],
+  );
 }
 
 class PdfReaderScreen extends StatefulWidget {
@@ -124,14 +127,14 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> {
           _totalPages = count;
           _pdfPageBytes = bytes;
           _isLoadingPdf = false;
-          _pdfLoadError =
-              bytes == null ? 'Gagal me-render halaman berkas PDF.' : null;
+          _pdfLoadError = bytes == null
+              ? 'Gagal me-render halaman berkas PDF.'
+              : null;
         });
       } else {
         setState(() {
           _isLoadingPdf = false;
-          _pdfLoadError =
-              'Tidak dapat membaca berkas PDF di memori perangkat.';
+          _pdfLoadError = 'Tidak dapat membaca berkas PDF di memori perangkat.';
         });
       }
     } catch (e) {
@@ -159,7 +162,8 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> {
           final sigList = decoded['signatures'] as List<dynamic>;
           for (final item in sigList) {
             _placedSignatures.add(
-                PlacedSignature.fromMap(item as Map<String, dynamic>));
+              PlacedSignature.fromMap(item as Map<String, dynamic>),
+            );
           }
         }
       }
@@ -189,9 +193,9 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal menyimpan dokumen: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Gagal menyimpan dokumen: $e')));
       }
     }
   }
@@ -257,7 +261,9 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> {
       backgroundColor: isDark ? AppTheme.darkBg : const Color(0xFFF1F5F9),
       appBar: AppBar(
         backgroundColor: isDark ? AppTheme.darkBg : Colors.white,
-        foregroundColor: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
+        foregroundColor: isDark
+            ? AppTheme.darkTextPrimary
+            : AppTheme.lightTextPrimary,
         elevation: 0,
         scrolledUnderElevation: 0,
         leading: IconButton(
@@ -271,11 +277,20 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> {
               width: 32,
               height: 32,
               decoration: BoxDecoration(
-                color: isDark ? AppTheme.pdfRed.withValues(alpha: 0.2) : AppTheme.pdfRedLight,
+                color: isDark
+                    ? AppTheme.pdfRed.withValues(alpha: 0.2)
+                    : AppTheme.pdfRedLight,
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppTheme.pdfRed.withValues(alpha: 0.25), width: 1),
+                border: Border.all(
+                  color: AppTheme.pdfRed.withValues(alpha: 0.25),
+                  width: 1,
+                ),
               ),
-              child: const Icon(Icons.picture_as_pdf_rounded, color: AppTheme.pdfRed, size: 18),
+              child: const Icon(
+                Icons.picture_as_pdf_rounded,
+                color: AppTheme.pdfRed,
+                size: 18,
+              ),
             ),
             const SizedBox(width: 10),
             Expanded(
@@ -290,7 +305,9 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> {
                       fontSize: 15,
                       fontWeight: FontWeight.w700,
                       letterSpacing: -0.2,
-                      color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
+                      color: isDark
+                          ? AppTheme.darkTextPrimary
+                          : AppTheme.lightTextPrimary,
                     ),
                   ),
                   Text(
@@ -298,7 +315,9 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> {
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w500,
-                      color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+                      color: isDark
+                          ? AppTheme.darkTextSecondary
+                          : AppTheme.lightTextSecondary,
                     ),
                   ),
                 ],
@@ -313,9 +332,11 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> {
               _viewMode == 0
                   ? Icons.wb_sunny_rounded
                   : (_viewMode == 1
-                      ? Icons.menu_book_rounded
-                      : Icons.dark_mode_rounded),
-              color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+                        ? Icons.menu_book_rounded
+                        : Icons.dark_mode_rounded),
+              color: isDark
+                  ? AppTheme.darkTextSecondary
+                  : AppTheme.lightTextSecondary,
             ),
             tooltip: 'Mode Baca (Siang/Sepia/Malam)',
             onPressed: () {
@@ -335,10 +356,19 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> {
               style: TextButton.styleFrom(
                 backgroundColor: AppTheme.pdfRed,
                 foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
               ),
-              icon: const Icon(Icons.check_rounded, size: 16, color: Colors.white),
+              icon: const Icon(
+                Icons.check_rounded,
+                size: 16,
+                color: Colors.white,
+              ),
               label: const Text(
                 'Simpan',
                 style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
@@ -367,9 +397,13 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> {
                 child: SingleChildScrollView(
                   child: Container(
                     margin: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 20),
-                    constraints:
-                        const BoxConstraints(maxWidth: 550, minHeight: 680),
+                      horizontal: 16,
+                      vertical: 20,
+                    ),
+                    constraints: const BoxConstraints(
+                      maxWidth: 550,
+                      minHeight: 680,
+                    ),
                     decoration: BoxDecoration(
                       color: _isRealPdfFile ? Colors.white : bgColor,
                       borderRadius: BorderRadius.circular(8),
@@ -394,7 +428,8 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> {
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   CircularProgressIndicator(
-                                      color: AppTheme.pdfRed),
+                                    color: AppTheme.pdfRed,
+                                  ),
                                   SizedBox(height: 14),
                                   Text(
                                     'Memuat halaman PDF...',
@@ -417,15 +452,20 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> {
                               child: Column(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  const Icon(Icons.picture_as_pdf_outlined,
-                                      size: 48, color: Colors.grey),
+                                  const Icon(
+                                    Icons.picture_as_pdf_outlined,
+                                    size: 48,
+                                    color: Colors.grey,
+                                  ),
                                   const SizedBox(height: 12),
                                   Text(
                                     _pdfLoadError ??
                                         'Tidak dapat menampilkan halaman berkas PDF.',
                                     textAlign: TextAlign.center,
                                     style: const TextStyle(
-                                        color: Colors.grey, fontSize: 13),
+                                      color: Colors.grey,
+                                      fontSize: 13,
+                                    ),
                                   ),
                                 ],
                               ),
@@ -487,14 +527,16 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> {
                                     Text(
                                       'Status: Terverifikasi Digital',
                                       style: TextStyle(
-                                          fontSize: 9,
-                                          color: Colors.grey.shade600),
+                                        fontSize: 9,
+                                        color: Colors.grey.shade600,
+                                      ),
                                     ),
                                     Text(
                                       'Dokumen PDF',
                                       style: TextStyle(
-                                          fontSize: 9,
-                                          color: Colors.grey.shade600),
+                                        fontSize: 9,
+                                        color: Colors.grey.shade600,
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -522,8 +564,10 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> {
             right: 40,
             child: Center(
               child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFF0F172A).withValues(alpha: 0.9),
                   borderRadius: BorderRadius.circular(30),
@@ -539,8 +583,11 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.arrow_back_ios_rounded,
-                          size: 15, color: Colors.white),
+                      icon: const Icon(
+                        Icons.arrow_back_ios_rounded,
+                        size: 15,
+                        color: Colors.white,
+                      ),
                       onPressed: _currentPage > 1
                           ? () => _goToPage(_currentPage - 1)
                           : null,
@@ -557,8 +604,11 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> {
                       ),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.arrow_forward_ios_rounded,
-                          size: 15, color: Colors.white),
+                      icon: const Icon(
+                        Icons.arrow_forward_ios_rounded,
+                        size: 15,
+                        color: Colors.white,
+                      ),
                       onPressed: _currentPage < _totalPages
                           ? () => _goToPage(_currentPage + 1)
                           : null,
@@ -587,10 +637,26 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> {
       // Sepia mode
       image = ColorFiltered(
         colorFilter: const ColorFilter.matrix([
-          0.9, 0, 0, 0, 30,
-          0, 0.85, 0, 0, 20,
-          0, 0, 0.75, 0, 0,
-          0, 0, 0, 1, 0,
+          0.9,
+          0,
+          0,
+          0,
+          30,
+          0,
+          0.85,
+          0,
+          0,
+          20,
+          0,
+          0,
+          0.75,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
         ]),
         child: image,
       );
@@ -598,10 +664,26 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> {
       // Night mode (inverted colors)
       image = ColorFiltered(
         colorFilter: const ColorFilter.matrix([
-          -1, 0, 0, 0, 255,
-          0, -1, 0, 0, 255,
-          0, 0, -1, 0, 255,
-          0, 0, 0, 1, 0,
+          -1,
+          0,
+          0,
+          0,
+          255,
+          0,
+          -1,
+          0,
+          0,
+          255,
+          0,
+          0,
+          -1,
+          0,
+          255,
+          0,
+          0,
+          0,
+          1,
+          0,
         ]),
         child: image,
       );
@@ -626,12 +708,8 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> {
         onPanUpdate: (details) {
           setState(() {
             signature.position = Offset(
-              math.max(
-                  0.0,
-                  signature.position.dx + details.delta.dx),
-              math.max(
-                  0.0,
-                  signature.position.dy + details.delta.dy),
+              math.max(0.0, signature.position.dx + details.delta.dx),
+              math.max(0.0, signature.position.dy + details.delta.dy),
             );
           });
         },
@@ -683,8 +761,11 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> {
                         ],
                       ),
                       padding: const EdgeInsets.all(3),
-                      child: const Icon(Icons.close,
-                          size: 13, color: Colors.white),
+                      child: const Icon(
+                        Icons.close,
+                        size: 13,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
                 ),
@@ -698,13 +779,13 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> {
                     onPanUpdate: (details) {
                       setState(() {
                         signature.width = math.max(
-                            80.0,
-                            math.min(
-                                340.0, signature.width + details.delta.dx));
+                          80.0,
+                          math.min(340.0, signature.width + details.delta.dx),
+                        );
                         signature.height = math.max(
-                            35.0,
-                            math.min(
-                                160.0, signature.height + details.delta.dy));
+                          35.0,
+                          math.min(160.0, signature.height + details.delta.dy),
+                        );
                       });
                     },
                     child: Container(

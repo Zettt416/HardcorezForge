@@ -6,9 +6,23 @@ import '../core/utils/platform_share.dart';
 
 class DeviceDocumentScanner {
   static const List<String> supportedExtensions = [
-    'docx', 'doc', 'odt', 'rtf', 'txt', 'md', 'gdoc',
-    'xlsx', 'xls', 'csv', 'tsv', 'ods', 'gsheet',
-    'pptx', 'ppt', 'odp', 'gslides',
+    'docx',
+    'doc',
+    'odt',
+    'rtf',
+    'txt',
+    'md',
+    'gdoc',
+    'xlsx',
+    'xls',
+    'csv',
+    'tsv',
+    'ods',
+    'gsheet',
+    'pptx',
+    'ppt',
+    'odp',
+    'gslides',
     'pdf',
   ];
 
@@ -29,37 +43,64 @@ class DeviceDocumentScanner {
 
     // Dynamically discover modern WhatsApp multi-account folders if accessible
     try {
-      final waAccountsDir = Directory('/storage/emulated/0/Android/media/com.whatsapp/WhatsApp/accounts');
+      final waAccountsDir = Directory(
+        '/storage/emulated/0/Android/media/com.whatsapp/WhatsApp/accounts',
+      );
       if (await waAccountsDir.exists()) {
-        await for (final acc in waAccountsDir.list(recursive: false, followLinks: false)) {
+        await for (final acc in waAccountsDir.list(
+          recursive: false,
+          followLinks: false,
+        )) {
           if (acc is Directory) {
             targetDirectories.add('${acc.path}/Media/WhatsApp Documents');
-            targetDirectories.add('${acc.path}/Media/WhatsApp Documents/Private');
+            targetDirectories.add(
+              '${acc.path}/Media/WhatsApp Documents/Private',
+            );
           }
         }
       }
     } catch (_) {}
 
     const Set<String> ignoredDirs = {
-      'android', 'obb', 'cache', 'caches', 'thumbnails', 'dcim', 'alarms',
-      'notifications', 'ringtones', 'podcasts'
+      'android',
+      'obb',
+      'cache',
+      'caches',
+      'thumbnails',
+      'dcim',
+      'alarms',
+      'notifications',
+      'ringtones',
+      'podcasts',
     };
 
     for (final dirPath in targetDirectories) {
       final dir = Directory(dirPath);
       if (await dir.exists()) {
         try {
-          await for (final entity in dir.list(recursive: false, followLinks: false)) {
+          await for (final entity in dir.list(
+            recursive: false,
+            followLinks: false,
+          )) {
             if (entity is File) {
               await _processFile(entity, results, foundPaths);
-            } else if (entity is Directory && dirPath != '/storage/emulated/0') {
+            } else if (entity is Directory &&
+                dirPath != '/storage/emulated/0') {
               // Also inspect 1-level subdirectories of Download & Documents
               try {
                 final dirName = entity.uri.pathSegments.isNotEmpty
-                    ? entity.uri.pathSegments[entity.uri.pathSegments.length - 2].toLowerCase()
+                    ? entity
+                          .uri
+                          .pathSegments[entity.uri.pathSegments.length - 2]
+                          .toLowerCase()
                     : '';
-                if (dirName.isNotEmpty && !dirName.startsWith('.') && !ignoredDirs.contains(dirName)) {
-                  await for (final subEntity in entity.list(recursive: false, followLinks: false)) {
+                if (dirName.isNotEmpty &&
+                    !dirName.startsWith('.') &&
+                    !ignoredDirs.contains(dirName)) {
+                  await for (final subEntity in entity.list(
+                    recursive: false,
+                    followLinks: false,
+                  )) {
                     if (subEntity is File) {
                       await _processFile(subEntity, results, foundPaths);
                     }
@@ -77,10 +118,16 @@ class DeviceDocumentScanner {
     return results;
   }
 
-  static Future<void> _processFile(File file, List<DocumentModel> results, Set<String> foundPaths) async {
+  static Future<void> _processFile(
+    File file,
+    List<DocumentModel> results,
+    Set<String> foundPaths,
+  ) async {
     if (foundPaths.contains(file.path)) return;
 
-    final fileName = file.uri.pathSegments.isNotEmpty ? file.uri.pathSegments.last : '';
+    final fileName = file.uri.pathSegments.isNotEmpty
+        ? file.uri.pathSegments.last
+        : '';
     if (fileName.isEmpty || fileName.startsWith('.')) return;
 
     final dotIndex = fileName.lastIndexOf('.');
@@ -160,7 +207,8 @@ class DeviceDocumentScanner {
     } else if (['xlsx', 'xls', 'ods'].contains(ext)) {
       try {
         final nativeData = await PlatformShare.extractXlsxCells(doc.filePath!);
-        if (nativeData != null && (nativeData['cells'] as Map?)?.isNotEmpty == true) {
+        if (nativeData != null &&
+            (nativeData['cells'] as Map?)?.isNotEmpty == true) {
           doc.content = json.encode(nativeData);
         } else {
           doc.content = json.encode({
@@ -218,10 +266,11 @@ class DeviceDocumentScanner {
               {
                 'title': doc.title,
                 'subtitle': 'Presentasi ${ext.toUpperCase()}',
-                'content': '• Lokasi berkas:\n${doc.filePath}\n• Ukuran: ${doc.sizeInBytes} bytes\n• Siap diedit dan dipresentasikan',
+                'content':
+                    '• Lokasi berkas:\n${doc.filePath}\n• Ukuran: ${doc.sizeInBytes} bytes\n• Siap diedit dan dipresentasikan',
                 'themeIndex': 0,
-              }
-            ]
+              },
+            ],
           });
         }
       } catch (_) {
@@ -244,10 +293,11 @@ class DeviceDocumentScanner {
             {
               'title': 'Presentasi Offline',
               'subtitle': 'Kompatibilitas Penuh',
-              'content': '• Berkas pointer cloud Google Drive\n• Anda dapat mengunduh format .pptx untuk presentasi offline kapan pun',
+              'content':
+                  '• Berkas pointer cloud Google Drive\n• Anda dapat mengunduh format .pptx untuk presentasi offline kapan pun',
               'themeIndex': 1,
-            }
-          ]
+            },
+          ],
         });
       } catch (_) {
         doc.content = json.encode({'slides': []});
@@ -261,13 +311,15 @@ class DeviceDocumentScanner {
           doc.content = json.encode({'text': text, 'fontSize': 15.0});
         } else {
           doc.content = json.encode({
-            'text': 'Berkas ${doc.title} (${ext.toUpperCase()})\nLokasi: ${doc.filePath}',
+            'text':
+                'Berkas ${doc.title} (${ext.toUpperCase()})\nLokasi: ${doc.filePath}',
             'fontSize': 15.0,
           });
         }
       } catch (_) {
         doc.content = json.encode({
-          'text': 'Berkas ${doc.title} (${ext.toUpperCase()})\nLokasi: ${doc.filePath}',
+          'text':
+              'Berkas ${doc.title} (${ext.toUpperCase()})\nLokasi: ${doc.filePath}',
           'fontSize': 15.0,
         });
       }
@@ -280,15 +332,16 @@ class DeviceDocumentScanner {
         final email = data['email'] ?? '';
         final title = data['title'] ?? doc.title;
         doc.content = json.encode({
-          'text': '📄 GOOGLE DOCS CLOUD DOCUMENT\n\n'
-                  'Judul: $title\n'
-                  'Akun Pemilik: ${email.isNotEmpty ? email : 'Terkoneksi'}\n'
-                  'ID Berkas: $docId\n\n'
-                  '🔗 Tautan Akses Cloud:\n$url\n\n'
-                  '────────────────────────────────────\n'
-                  'Petunjuk Integrasi:\n'
-                  'Berkas .gdoc adalah penunjuk (pointer) resmi dokumen Google Docs di penyimpanan perangkat.\n'
-                  'Aplikasi HardcorezForge dapat membaca metadata ini secara langsung, serta mendukung file unduhan Google Docs dalam format .docx atau .pdf untuk diedit secara offline kapan pun tanpa jaringan internet.',
+          'text':
+              '📄 GOOGLE DOCS CLOUD DOCUMENT\n\n'
+              'Judul: $title\n'
+              'Akun Pemilik: ${email.isNotEmpty ? email : 'Terkoneksi'}\n'
+              'ID Berkas: $docId\n\n'
+              '🔗 Tautan Akses Cloud:\n$url\n\n'
+              '────────────────────────────────────\n'
+              'Petunjuk Integrasi:\n'
+              'Berkas .gdoc adalah penunjuk (pointer) resmi dokumen Google Docs di penyimpanan perangkat.\n'
+              'Aplikasi HardcorezForge dapat membaca metadata ini secara langsung, serta mendukung file unduhan Google Docs dalam format .docx atau .pdf untuk diedit secara offline kapan pun tanpa jaringan internet.',
           'fontSize': 15.0,
         });
       } catch (_) {
@@ -308,15 +361,15 @@ class DeviceDocumentScanner {
             .trim();
         doc.content = json.encode({'text': cleanText, 'fontSize': 15.0});
       } catch (_) {
-        doc.content = json.encode({'text': 'Berkas RTF: ${doc.title}', 'fontSize': 15.0});
+        doc.content = json.encode({
+          'text': 'Berkas RTF: ${doc.title}',
+          'fontSize': 15.0,
+        });
       }
     } else if (ext == 'pdf') {
       // Berkas PDF di-render secara dinamis dari file via native PdfRenderer
       if (doc.content.isEmpty) {
-        doc.content = json.encode({
-          'text': doc.title,
-          'signatures': [],
-        });
+        doc.content = json.encode({'text': doc.title, 'signatures': []});
       }
     } else {
       // Plain text, Markdown, or raw fallback
@@ -325,11 +378,11 @@ class DeviceDocumentScanner {
         doc.content = json.encode({'text': text, 'fontSize': 15.0});
       } catch (_) {
         doc.content = json.encode({
-          'text': 'Berkas ${doc.title} (${doc.type.extension})\nLokasi: ${doc.filePath}',
+          'text':
+              'Berkas ${doc.title} (${doc.type.extension})\nLokasi: ${doc.filePath}',
           'fontSize': 15.0,
         });
       }
     }
   }
 }
-

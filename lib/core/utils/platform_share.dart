@@ -1,7 +1,9 @@
 import 'package:flutter/services.dart';
 
 class PlatformShare {
-  static const MethodChannel _channel = MethodChannel('com.hardcorez.forge/platform');
+  static const MethodChannel _channel = MethodChannel(
+    'com.hardcorez.forge/platform',
+  );
 
   static Future<bool> hasStoragePermission() async {
     try {
@@ -21,7 +23,10 @@ class PlatformShare {
     }
   }
 
-  static Future<void> shareText({required String text, String title = 'Bagikan Dokumen'}) async {
+  static Future<void> shareText({
+    required String text,
+    String title = 'Bagikan Dokumen',
+  }) async {
     try {
       await _channel.invokeMethod('shareText', {'text': text, 'title': title});
     } catch (_) {
@@ -31,7 +36,9 @@ class PlatformShare {
 
   static Future<String?> extractDocxText(String path) async {
     try {
-      final res = await _channel.invokeMethod<String>('extractDocxText', {'path': path});
+      final res = await _channel.invokeMethod<String>('extractDocxText', {
+        'path': path,
+      });
       return res;
     } catch (_) {
       return null;
@@ -40,16 +47,24 @@ class PlatformShare {
 
   static Future<Map<String, dynamic>?> extractXlsxCells(String path) async {
     try {
-      final res = await _channel.invokeMapMethod<String, dynamic>('extractXlsxCells', {'path': path});
+      final res = await _channel.invokeMapMethod<String, dynamic>(
+        'extractXlsxCells',
+        {'path': path},
+      );
       return res;
     } catch (_) {
       return null;
     }
   }
 
-  static Future<List<Map<String, dynamic>>?> extractPptxSlides(String path) async {
+  static Future<List<Map<String, dynamic>>?> extractPptxSlides(
+    String path,
+  ) async {
     try {
-      final res = await _channel.invokeListMethod<Map<dynamic, dynamic>>('extractPptxSlides', {'path': path});
+      final res = await _channel.invokeListMethod<Map<dynamic, dynamic>>(
+        'extractPptxSlides',
+        {'path': path},
+      );
       if (res == null) return null;
       return res.map((item) => Map<String, dynamic>.from(item)).toList();
     } catch (_) {
@@ -65,11 +80,7 @@ class PlatformShare {
     try {
       final res = await _channel.invokeMapMethod<String, dynamic>(
         'renderPdfPage',
-        {
-          'path': path,
-          'pageIndex': pageIndex,
-          'width': width,
-        },
+        {'path': path, 'pageIndex': pageIndex, 'width': width},
       );
       return res;
     } catch (_) {
@@ -77,4 +88,3 @@ class PlatformShare {
     }
   }
 }
-

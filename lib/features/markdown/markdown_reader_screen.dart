@@ -335,6 +335,107 @@ class _MarkdownReaderScreenState extends State<MarkdownReaderScreen> {
     );
   }
 
+  void _showFullTitleSheet(String title) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: isDark ? AppTheme.darkSurface : Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? const Color(0xFF334155)
+                        : const Color(0xFFE2E8F0),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  const Icon(
+                    Icons.description_rounded,
+                    size: 20,
+                    color: Color(0xFF0284C7),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Nama Lengkap Dokumen',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: isDark
+                          ? AppTheme.darkTextSecondary
+                          : AppTheme.lightTextSecondary,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              SelectableText(
+                title,
+                style: TextStyle(
+                  fontSize: 15.5,
+                  fontWeight: FontWeight.w800,
+                  height: 1.4,
+                  color: isDark ? Colors.white : const Color(0xFF0F172A),
+                ),
+              ),
+              if (widget.document.filePath != null) ...[
+                const SizedBox(height: 8),
+                Text(
+                  widget.document.filePath!,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: isDark
+                        ? const Color(0xFF64748B)
+                        : const Color(0xFF94A3B8),
+                  ),
+                ),
+              ],
+              const SizedBox(height: 18),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    Clipboard.setData(ClipboardData(text: title));
+                    Navigator.pop(ctx);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Nama berkas disalin'),
+                        duration: Duration(seconds: 1),
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.copy_rounded, size: 16),
+                  label: const Text('Salin Nama Berkas'),
+                  style: OutlinedButton.styleFrom(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -357,60 +458,30 @@ class _MarkdownReaderScreenState extends State<MarkdownReaderScreen> {
             onPressed: () => Navigator.pop(context),
           ),
           titleSpacing: 0,
-          title: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                widget.document.title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: isDark ? Colors.white : const Color(0xFF0F172A),
-                ),
+          title: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => _showFullTitleSheet(widget.document.title),
+            onLongPress: () => _showFullTitleSheet(widget.document.title),
+            child: Text(
+              widget.document.title,
+              maxLines: 2,
+              softWrap: true,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 14.5,
+                fontWeight: FontWeight.w700,
+                height: 1.25,
+                color: isDark ? Colors.white : const Color(0xFF0F172A),
               ),
-              const SizedBox(height: 2),
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 5,
-                      vertical: 1,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF0284C7).withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: const Text(
-                      'MARKDOWN READER',
-                      style: TextStyle(
-                        fontSize: 9,
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFF0284C7),
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    '$_readingTimeMinutes mnt baca • $_wordCount kata',
-                    style: TextStyle(
-                      fontSize: 10.5,
-                      color: isDark
-                          ? AppTheme.darkTextSecondary
-                          : AppTheme.lightTextSecondary,
-                    ),
-                  ),
-                ],
-              ),
-            ],
+            ),
           ),
           actions: [
             // Mode Toggle (Baca / Edit)
             IconButton(
+              visualDensity: VisualDensity.compact,
               icon: Icon(
                 _isEditing ? Icons.visibility_rounded : Icons.edit_note_rounded,
+                size: 22,
                 color: _isEditing
                     ? AppTheme.brandCrimson
                     : (isDark ? Colors.white70 : const Color(0xFF475569)),
@@ -429,8 +500,10 @@ class _MarkdownReaderScreenState extends State<MarkdownReaderScreen> {
             // Search Toggle
             if (!_isEditing)
               IconButton(
+                visualDensity: VisualDensity.compact,
                 icon: Icon(
                   _isSearching ? Icons.close_rounded : Icons.search_rounded,
+                  size: 21,
                   color: _isSearching
                       ? AppTheme.brandCrimson
                       : (isDark ? Colors.white70 : const Color(0xFF475569)),
@@ -450,6 +523,7 @@ class _MarkdownReaderScreenState extends State<MarkdownReaderScreen> {
             // Save Button (when editing)
             if (_isEditing)
               IconButton(
+                visualDensity: VisualDensity.compact,
                 icon: _isSaving
                     ? const SizedBox(
                         width: 18,
@@ -458,6 +532,7 @@ class _MarkdownReaderScreenState extends State<MarkdownReaderScreen> {
                       )
                     : Icon(
                         Icons.save_rounded,
+                        size: 22,
                         color: _isDirty
                             ? AppTheme.brandCrimson
                             : (isDark ? Colors.white54 : Colors.grey),
@@ -470,6 +545,7 @@ class _MarkdownReaderScreenState extends State<MarkdownReaderScreen> {
             PopupMenuButton<String>(
               icon: Icon(
                 Icons.more_vert_rounded,
+                size: 21,
                 color: isDark ? Colors.white70 : const Color(0xFF475569),
               ),
               shape: RoundedRectangleBorder(
@@ -533,6 +609,94 @@ class _MarkdownReaderScreenState extends State<MarkdownReaderScreen> {
         ),
         body: Column(
           children: [
+            // Elegant Document Info Strip (No collision with AppBar actions!)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
+              decoration: BoxDecoration(
+                color: isDark
+                    ? const Color(0xFF111726)
+                    : const Color(0xFFF1F5F9),
+                border: Border(
+                  bottom: BorderSide(
+                    color: isDark
+                        ? AppTheme.darkBorder
+                        : const Color(0xFFE2E8F0),
+                    width: 0.8,
+                  ),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF0284C7).withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: const Text(
+                      'MARKDOWN',
+                      style: TextStyle(
+                        fontSize: 9.5,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF0284C7),
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Icon(
+                    Icons.schedule_rounded,
+                    size: 13,
+                    color: isDark
+                        ? AppTheme.darkTextSecondary
+                        : AppTheme.lightTextSecondary,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    '$_readingTimeMinutes mnt baca',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: isDark
+                          ? AppTheme.darkTextSecondary
+                          : AppTheme.lightTextSecondary,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    '•',
+                    style: TextStyle(
+                      color: isDark
+                          ? const Color(0xFF475569)
+                          : const Color(0xFF94A3B8),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    '$_wordCount kata',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: isDark
+                          ? AppTheme.darkTextSecondary
+                          : AppTheme.lightTextSecondary,
+                    ),
+                  ),
+                  const Spacer(),
+                  Text(
+                    '${_fontSize.toInt()}pt',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: isDark
+                          ? AppTheme.darkTextSecondary
+                          : AppTheme.lightTextSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
             // Search Bar (if searching)
             if (_isSearching && !_isEditing)
               Container(

@@ -14,22 +14,25 @@ class SignaturePoint {
   });
 
   Map<String, dynamic> toMap() => {
-        'dx': offset.dx,
-        'dy': offset.dy,
-        'color': color.toARGB32(),
-        'strokeWidth': strokeWidth,
-      };
+    'dx': offset.dx,
+    'dy': offset.dy,
+    'color': color.toARGB32(),
+    'strokeWidth': strokeWidth,
+  };
 
   factory SignaturePoint.fromMap(Map<String, dynamic> map) => SignaturePoint(
-        offset: Offset(
-            (map['dx'] as num).toDouble(), (map['dy'] as num).toDouble()),
-        color: Color(map['color'] as int),
-        strokeWidth: (map['strokeWidth'] as num).toDouble(),
-      );
+    offset: Offset(
+      (map['dx'] as num).toDouble(),
+      (map['dy'] as num).toDouble(),
+    ),
+    color: Color(map['color'] as int),
+    strokeWidth: (map['strokeWidth'] as num).toDouble(),
+  );
 }
 
 class SignatureScreen extends StatefulWidget {
-  final Function(List<List<SignaturePoint>> strokes, String? stampText)? onSignatureSaved;
+  final Function(List<List<SignaturePoint>> strokes, String? stampText)?
+  onSignatureSaved;
 
   const SignatureScreen({super.key, this.onSignatureSaved});
 
@@ -76,7 +79,9 @@ class _SignatureScreenState extends State<SignatureScreen> {
     if (_strokes.isEmpty && _selectedStamp == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Silakan buat tanda tangan atau pilih stempel terlebih dahulu'),
+          content: Text(
+            'Silakan buat tanda tangan atau pilih stempel terlebih dahulu',
+          ),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -85,13 +90,17 @@ class _SignatureScreenState extends State<SignatureScreen> {
 
     // Deep-copy strokes to avoid referencing state lists
     final savedStrokes = _strokes
-        .map((stroke) => stroke
-            .map((p) => SignaturePoint(
+        .map(
+          (stroke) => stroke
+              .map(
+                (p) => SignaturePoint(
                   offset: p.offset,
                   color: p.color,
                   strokeWidth: p.strokeWidth,
-                ))
-            .toList())
+                ),
+              )
+              .toList(),
+        )
         .toList();
 
     widget.onSignatureSaved?.call(savedStrokes, _selectedStamp);
@@ -114,7 +123,9 @@ class _SignatureScreenState extends State<SignatureScreen> {
           IconButton(
             icon: const Icon(Icons.delete_outline_rounded),
             tooltip: 'Hapus Semua',
-            onPressed: _strokes.isEmpty && _selectedStamp == null ? null : _clear,
+            onPressed: _strokes.isEmpty && _selectedStamp == null
+                ? null
+                : _clear,
           ),
           IconButton(
             icon: const Icon(Icons.check_rounded, color: AppTheme.accentBlue),
@@ -131,14 +142,20 @@ class _SignatureScreenState extends State<SignatureScreen> {
             color: isDark ? AppTheme.darkSurface : const Color(0xFFEFF6FF),
             child: Row(
               children: [
-                const Icon(Icons.draw_rounded, size: 20, color: AppTheme.accentBlue),
+                const Icon(
+                  Icons.draw_rounded,
+                  size: 20,
+                  color: AppTheme.accentBlue,
+                ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
                     'Goreskan tanda tangan dengan jari atau stylus di kanvas di bawah.',
                     style: TextStyle(
                       fontSize: 12,
-                      color: isDark ? AppTheme.darkTextSecondary : AppTheme.primaryBlue,
+                      color: isDark
+                          ? AppTheme.darkTextSecondary
+                          : AppTheme.primaryBlue,
                     ),
                   ),
                 ),
@@ -199,9 +216,15 @@ class _SignatureScreenState extends State<SignatureScreen> {
                           child: Transform.rotate(
                             angle: -0.25,
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 20,
+                                vertical: 8,
+                              ),
                               decoration: BoxDecoration(
-                                border: Border.all(color: Colors.red.withValues(alpha: 0.7), width: 3),
+                                border: Border.all(
+                                  color: Colors.red.withValues(alpha: 0.7),
+                                  width: 3,
+                                ),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(
@@ -279,7 +302,10 @@ class _SignatureScreenState extends State<SignatureScreen> {
                     children: [
                       const Text(
                         'Tinta:',
-                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                       const SizedBox(width: 8),
                       for (final color in _availableColors)
@@ -293,7 +319,9 @@ class _SignatureScreenState extends State<SignatureScreen> {
                               color: color,
                               shape: BoxShape.circle,
                               border: Border.all(
-                                color: _selectedColor == color ? Colors.white : Colors.transparent,
+                                color: _selectedColor == color
+                                    ? Colors.white
+                                    : Colors.transparent,
                                 width: 2.5,
                               ),
                               boxShadow: [
@@ -315,53 +343,66 @@ class _SignatureScreenState extends State<SignatureScreen> {
                           min: 1.5,
                           max: 8.0,
                           activeColor: AppTheme.accentBlue,
-                          onChanged: (val) => setState(() => _strokeWidth = val),
+                          onChanged: (val) =>
+                              setState(() => _strokeWidth = val),
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 8),
 
-                // Stamp Selection
-                Row(
-                  children: [
-                    const Text(
-                      'Stempel:',
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(
-                          children: [
-                            for (final stamp in _availableStamps)
-                              Padding(
-                                padding: const EdgeInsets.only(right: 6),
-                                child: ChoiceChip(
-                                  label: Text(stamp, style: const TextStyle(fontSize: 11)),
-                                  selected: _selectedStamp == stamp,
-                                  selectedColor: Colors.red.shade100,
-                                  labelStyle: TextStyle(
-                                    color: _selectedStamp == stamp ? Colors.red.shade900 : null,
-                                    fontWeight: _selectedStamp == stamp ? FontWeight.bold : FontWeight.normal,
-                                  ),
-                                  onSelected: (selected) {
-                                    setState(() {
-                                      _selectedStamp = selected ? stamp : null;
-                                    });
-                                  },
-                                ),
-                              ),
-                          ],
+                  // Stamp Selection
+                  Row(
+                    children: [
+                      const Text(
+                        'Stempel:',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                    ),
-                  ],
-                ),
-              ],
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            children: [
+                              for (final stamp in _availableStamps)
+                                Padding(
+                                  padding: const EdgeInsets.only(right: 6),
+                                  child: ChoiceChip(
+                                    label: Text(
+                                      stamp,
+                                      style: const TextStyle(fontSize: 11),
+                                    ),
+                                    selected: _selectedStamp == stamp,
+                                    selectedColor: Colors.red.shade100,
+                                    labelStyle: TextStyle(
+                                      color: _selectedStamp == stamp
+                                          ? Colors.red.shade900
+                                          : null,
+                                      fontWeight: _selectedStamp == stamp
+                                          ? FontWeight.bold
+                                          : FontWeight.normal,
+                                    ),
+                                    onSelected: (selected) {
+                                      setState(() {
+                                        _selectedStamp = selected
+                                            ? stamp
+                                            : null;
+                                      });
+                                    },
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
           ),
         ],
       ),
@@ -431,7 +472,9 @@ class SignaturePainter extends CustomPainter {
 
       final strokeColor = stroke.first.color;
       final strokeW = math.max(
-          1.5, stroke.first.strokeWidth * (autoFit ? math.min(scale, 1.2) : 1.0));
+        1.5,
+        stroke.first.strokeWidth * (autoFit ? math.min(scale, 1.2) : 1.0),
+      );
 
       final paint = Paint()
         ..color = strokeColor
@@ -445,7 +488,10 @@ class SignaturePainter extends CustomPainter {
         final dx = autoFit ? (p.offset.dx * scale + offsetX) : p.offset.dx;
         final dy = autoFit ? (p.offset.dy * scale + offsetY) : p.offset.dy;
         canvas.drawCircle(
-            Offset(dx, dy), strokeW / 2, paint..style = PaintingStyle.fill);
+          Offset(dx, dy),
+          strokeW / 2,
+          paint..style = PaintingStyle.fill,
+        );
         continue;
       }
 
@@ -459,15 +505,19 @@ class SignaturePainter extends CustomPainter {
         final prev = stroke[i - 1];
         final curr = stroke[i];
 
-        final prevX =
-            autoFit ? (prev.offset.dx * scale + offsetX) : prev.offset.dx;
-        final prevY =
-            autoFit ? (prev.offset.dy * scale + offsetY) : prev.offset.dy;
+        final prevX = autoFit
+            ? (prev.offset.dx * scale + offsetX)
+            : prev.offset.dx;
+        final prevY = autoFit
+            ? (prev.offset.dy * scale + offsetY)
+            : prev.offset.dy;
 
-        final currX =
-            autoFit ? (curr.offset.dx * scale + offsetX) : curr.offset.dx;
-        final currY =
-            autoFit ? (curr.offset.dy * scale + offsetY) : curr.offset.dy;
+        final currX = autoFit
+            ? (curr.offset.dx * scale + offsetX)
+            : curr.offset.dx;
+        final currY = autoFit
+            ? (curr.offset.dy * scale + offsetY)
+            : curr.offset.dy;
 
         final midX = (prevX + currX) / 2;
         final midY = (prevY + currY) / 2;
@@ -497,7 +547,9 @@ class SignaturePainter extends CustomPainter {
     );
 
     canvas.drawRRect(
-        RRect.fromRectAndRadius(rect, const Radius.circular(4)), stampPaint);
+      RRect.fromRectAndRadius(rect, const Radius.circular(4)),
+      stampPaint,
+    );
 
     final textSpan = TextSpan(
       text: text,

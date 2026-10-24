@@ -15,7 +15,9 @@ class FormulaEngine {
 
     try {
       // 1. Check Range Functions: SUM(A1:A5), AVG(A1:A5), MIN, MAX, COUNT
-      final funcMatch = RegExp(r'^([A-Z]+)\(([A-Z0-9:]+)\)$').firstMatch(expression);
+      final funcMatch = RegExp(
+        r'^([A-Z]+)\(([A-Z0-9:]+)\)$',
+      ).firstMatch(expression);
       if (funcMatch != null) {
         final funcName = funcMatch.group(1)!;
         final rangeStr = funcMatch.group(2)!;
@@ -23,14 +25,24 @@ class FormulaEngine {
       }
 
       // 2. Check Simple Binary Math: A1+B1, A1-B1, A1*B1, A1/B1
-      final binOpMatch = RegExp(r'^([A-Z0-9]+)\s*([\+\-\*\/])\s*([A-Z0-9]+)$').firstMatch(expression);
+      final binOpMatch = RegExp(
+        r'^([A-Z0-9]+)\s*([\+\-\*\/])\s*([A-Z0-9]+)$',
+      ).firstMatch(expression);
       if (binOpMatch != null) {
         final leftOperand = binOpMatch.group(1)!;
         final op = binOpMatch.group(2)!;
         final rightOperand = binOpMatch.group(3)!;
 
-        final double leftVal = _resolveOperand(leftOperand, cells, currentVisited);
-        final double rightVal = _resolveOperand(rightOperand, cells, currentVisited);
+        final double leftVal = _resolveOperand(
+          leftOperand,
+          cells,
+          currentVisited,
+        );
+        final double rightVal = _resolveOperand(
+          rightOperand,
+          cells,
+          currentVisited,
+        );
 
         double res = 0;
         switch (op) {
@@ -69,7 +81,11 @@ class FormulaEngine {
     }
   }
 
-  static double _resolveOperand(String token, Map<String, String> cells, Set<String> visited) {
+  static double _resolveOperand(
+    String token,
+    Map<String, String> cells,
+    Set<String> visited,
+  ) {
     final direct = double.tryParse(token);
     if (direct != null) return direct;
 
@@ -77,7 +93,11 @@ class FormulaEngine {
     return double.tryParse(cellVal) ?? 0.0;
   }
 
-  static String _resolveCell(String cellKey, Map<String, String> cells, Set<String> visited) {
+  static String _resolveCell(
+    String cellKey,
+    Map<String, String> cells,
+    Set<String> visited,
+  ) {
     if (visited.contains(cellKey)) {
       return '#CIRCULAR!';
     }
@@ -105,7 +125,11 @@ class FormulaEngine {
 
     for (final key in cellKeys) {
       final raw = cells[key] ?? '';
-      final evaluated = evaluate(formulaOrVal: raw, cells: cells, visited: visited);
+      final evaluated = evaluate(
+        formulaOrVal: raw,
+        cells: cells,
+        visited: visited,
+      );
       final num = double.tryParse(evaluated);
       if (num != null) {
         numbers.add(num);

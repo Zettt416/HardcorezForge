@@ -19,18 +19,18 @@ class SlideData {
   });
 
   Map<String, dynamic> toMap() => {
-        'title': title,
-        'subtitle': subtitle,
-        'content': content,
-        'themeIndex': themeIndex,
-      };
+    'title': title,
+    'subtitle': subtitle,
+    'content': content,
+    'themeIndex': themeIndex,
+  };
 
   factory SlideData.fromMap(Map<String, dynamic> map) => SlideData(
-        title: map['title'] as String? ?? '',
-        subtitle: map['subtitle'] as String? ?? '',
-        content: map['content'] as String? ?? '',
-        themeIndex: map['themeIndex'] as int? ?? 0,
-      );
+    title: map['title'] as String? ?? '',
+    subtitle: map['subtitle'] as String? ?? '',
+    content: map['content'] as String? ?? '',
+    themeIndex: map['themeIndex'] as int? ?? 0,
+  );
 }
 
 class PresentationScreen extends StatefulWidget {
@@ -45,7 +45,8 @@ class PresentationScreen extends StatefulWidget {
 class _PresentationScreenState extends State<PresentationScreen> {
   final TextEditingController _docTitleController = TextEditingController();
   final TextEditingController _slideTitleController = TextEditingController();
-  final TextEditingController _slideSubtitleController = TextEditingController();
+  final TextEditingController _slideSubtitleController =
+      TextEditingController();
   final TextEditingController _slideContentController = TextEditingController();
 
   final List<SlideData> _slides = [];
@@ -98,7 +99,8 @@ class _PresentationScreenState extends State<PresentationScreen> {
   void _loadSlides() {
     try {
       if (widget.document.content.isNotEmpty) {
-        final data = json.decode(widget.document.content) as Map<String, dynamic>;
+        final data =
+            json.decode(widget.document.content) as Map<String, dynamic>;
         final slideList = data['slides'] as List<dynamic>? ?? [];
         _slides.clear();
         for (final item in slideList) {
@@ -112,19 +114,22 @@ class _PresentationScreenState extends State<PresentationScreen> {
         SlideData(
           title: 'Strategi Pertumbuhan HardcorezForge',
           subtitle: 'Presentasi Bisnis & Rencana Q4',
-          content: '• Peningkatan performa aplikasi mobile\n• Ekspresi fitur tanda tangan digital\n• Dukungan penuh format Word, Excel, dan PDF',
+          content:
+              '• Peningkatan performa aplikasi mobile\n• Ekspresi fitur tanda tangan digital\n• Dukungan penuh format Word, Excel, dan PDF',
           themeIndex: 0,
         ),
         SlideData(
           title: 'Target Pengguna & Pasar',
           subtitle: 'Analisis Demografi & Kebutuhan',
-          content: '• Profesional yang membutuhkan office suite offline & aman\n• Tanpa iklan dan tanpa pelacakan data pribadi\n• Kompatibilitas lintas platform Android dan iOS',
+          content:
+              '• Profesional yang membutuhkan office suite offline & aman\n• Tanpa iklan dan tanpa pelacakan data pribadi\n• Kompatibilitas lintas platform Android dan iOS',
           themeIndex: 1,
         ),
         SlideData(
           title: 'Langkah Implementasi',
           subtitle: 'Roadmap & Rencana Peluncuran',
-          content: '1. Rilis versi stabil di Android\n2. Optimasi pipeline CI/CD untuk build iOS\n3. Integrasi cloud storage opsional (Google Drive / Nextcloud)',
+          content:
+              '1. Rilis versi stabil di Android\n2. Optimasi pipeline CI/CD untuk build iOS\n3. Integrasi cloud storage opsional (Google Drive / Nextcloud)',
           themeIndex: 2,
         ),
       ]);
@@ -172,7 +177,9 @@ class _PresentationScreenState extends State<PresentationScreen> {
   void _deleteSlide(int index) {
     if (_slides.length <= 1) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Presentasi harus memiliki minimal satu slide')),
+        const SnackBar(
+          content: Text('Presentasi harus memiliki minimal satu slide'),
+        ),
       );
       return;
     }
@@ -246,313 +253,380 @@ class _PresentationScreenState extends State<PresentationScreen> {
       },
       child: Scaffold(
         backgroundColor: isDark ? AppTheme.darkBg : const Color(0xFFF8FAFC),
-      appBar: AppBar(
-        backgroundColor: isDark ? AppTheme.darkBg : Colors.white,
-        foregroundColor: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: () => Navigator.pop(context),
-        ),
-        titleSpacing: 0,
-        title: Row(
-          children: [
-            Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: isDark ? AppTheme.pptOrange.withValues(alpha: 0.2) : AppTheme.pptOrangeLight,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppTheme.pptOrange.withValues(alpha: 0.25), width: 1),
-              ),
-              child: const Icon(Icons.slideshow_rounded, color: AppTheme.pptOrange, size: 18),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: TextField(
-                controller: _docTitleController,
-                style: TextStyle(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 16,
-                  letterSpacing: -0.2,
-                  color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
-                ),
-                decoration: InputDecoration(
-                  border: InputBorder.none,
-                  hintText: 'Nama Presentasi',
-                  hintStyle: TextStyle(
-                    color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+        appBar: AppBar(
+          backgroundColor: isDark ? AppTheme.darkBg : Colors.white,
+          foregroundColor: isDark
+              ? AppTheme.darkTextPrimary
+              : AppTheme.lightTextPrimary,
+          elevation: 0,
+          scrolledUnderElevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_rounded),
+            onPressed: () => Navigator.pop(context),
+          ),
+          titleSpacing: 0,
+          title: Row(
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? AppTheme.pptOrange.withValues(alpha: 0.2)
+                      : AppTheme.pptOrangeLight,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: AppTheme.pptOrange.withValues(alpha: 0.25),
+                    width: 1,
                   ),
                 ),
-                onChanged: (_) => setState(() => _isDirty = true),
+                child: const Icon(
+                  Icons.slideshow_rounded,
+                  color: AppTheme.pptOrange,
+                  size: 18,
+                ),
               ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: TextField(
+                  controller: _docTitleController,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 16,
+                    letterSpacing: -0.2,
+                    color: isDark
+                        ? AppTheme.darkTextPrimary
+                        : AppTheme.lightTextPrimary,
+                  ),
+                  decoration: InputDecoration(
+                    border: InputBorder.none,
+                    hintText: 'Nama Presentasi',
+                    hintStyle: TextStyle(
+                      color: isDark
+                          ? AppTheme.darkTextSecondary
+                          : AppTheme.lightTextSecondary,
+                    ),
+                  ),
+                  onChanged: (_) => setState(() => _isDirty = true),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            IconButton(
+              icon: const Icon(
+                Icons.play_circle_fill_rounded,
+                color: AppTheme.pptOrange,
+                size: 24,
+              ),
+              tooltip: 'Tayangkan Slideshow',
+              onPressed: _startSlideshow,
+            ),
+            Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: _isSaving
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : TextButton.icon(
+                      style: TextButton.styleFrom(
+                        backgroundColor: _isDirty
+                            ? AppTheme.pptOrange
+                            : (isDark
+                                  ? AppTheme.darkSurface
+                                  : const Color(0xFFE2E8F0)),
+                        foregroundColor: _isDirty
+                            ? Colors.white
+                            : (isDark
+                                  ? AppTheme.darkTextSecondary
+                                  : AppTheme.lightTextSecondary),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
+                      ),
+                      icon: Icon(
+                        Icons.save_rounded,
+                        size: 16,
+                        color: _isDirty
+                            ? Colors.white
+                            : (isDark
+                                  ? AppTheme.darkTextSecondary
+                                  : AppTheme.lightTextSecondary),
+                      ),
+                      label: Text(
+                        _isDirty ? 'Simpan' : 'Tersimpan',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      onPressed: _savePresentation,
+                    ),
             ),
           ],
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.play_circle_fill_rounded, color: AppTheme.pptOrange, size: 24),
-            tooltip: 'Tayangkan Slideshow',
-            onPressed: _startSlideshow,
-          ),
-          Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: _isSaving
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : TextButton.icon(
-                    style: TextButton.styleFrom(
-                      backgroundColor: _isDirty
-                          ? AppTheme.pptOrange
-                          : (isDark ? AppTheme.darkSurface : const Color(0xFFE2E8F0)),
-                      foregroundColor: _isDirty
-                          ? Colors.white
-                          : (isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    ),
-                    icon: Icon(
-                      Icons.save_rounded,
-                      size: 16,
-                      color: _isDirty
-                          ? Colors.white
-                          : (isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary),
-                    ),
-                    label: Text(
-                      _isDirty ? 'Simpan' : 'Tersimpan',
-                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
-                    ),
-                    onPressed: _savePresentation,
-                  ),
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          // Slide Canvas Preview
-          Expanded(
-            flex: 6,
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              color: Colors.black87,
-              child: Center(
-                child: AspectRatio(
-                  aspectRatio: 16 / 9, // Standard widescreen 16:9
-                  child: Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: currentTheme['bg'] as Color,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.4),
-                          blurRadius: 16,
-                          offset: const Offset(0, 8),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          currentSlide.title.isEmpty ? 'Judul Slide' : currentSlide.title,
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: currentTheme['title'] as Color,
+        body: Column(
+          children: [
+            // Slide Canvas Preview
+            Expanded(
+              flex: 6,
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                color: Colors.black87,
+                child: Center(
+                  child: AspectRatio(
+                    aspectRatio: 16 / 9, // Standard widescreen 16:9
+                    child: Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: currentTheme['bg'] as Color,
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.4),
+                            blurRadius: 16,
+                            offset: const Offset(0, 8),
                           ),
-                        ),
-                        if (currentSlide.subtitle.isNotEmpty) ...[
-                          const SizedBox(height: 4),
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
                           Text(
-                            currentSlide.subtitle,
+                            currentSlide.title.isEmpty
+                                ? 'Judul Slide'
+                                : currentSlide.title,
                             style: TextStyle(
-                              fontSize: 12,
-                              color: currentTheme['subtitle'] as Color,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: currentTheme['title'] as Color,
+                            ),
+                          ),
+                          if (currentSlide.subtitle.isNotEmpty) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              currentSlide.subtitle,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: currentTheme['subtitle'] as Color,
+                              ),
+                            ),
+                          ],
+                          const SizedBox(height: 10),
+                          Expanded(
+                            child: Text(
+                              currentSlide.content.isEmpty
+                                  ? 'Poin materi slide'
+                                  : currentSlide.content,
+                              style: TextStyle(
+                                fontSize: 12,
+                                height: 1.4,
+                                color: currentTheme['body'] as Color,
+                              ),
                             ),
                           ),
                         ],
-                        const SizedBox(height: 10),
-                        Expanded(
-                          child: Text(
-                            currentSlide.content.isEmpty ? 'Poin materi slide' : currentSlide.content,
-                            style: TextStyle(
-                              fontSize: 12,
-                              height: 1.4,
-                              color: currentTheme['body'] as Color,
-                            ),
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
                   ),
                 ),
               ),
             ),
-          ),
 
-          // Slide Editor Input Fields
-          Expanded(
-            flex: 5,
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  TextField(
-                    controller: _slideTitleController,
-                    decoration: const InputDecoration(
-                      labelText: 'Judul Slide',
-                      isDense: true,
+            // Slide Editor Input Fields
+            Expanded(
+              flex: 5,
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 10,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    TextField(
+                      controller: _slideTitleController,
+                      decoration: const InputDecoration(
+                        labelText: 'Judul Slide',
+                        isDense: true,
+                      ),
+                      onChanged: (_) => _onSlideContentChanged(),
                     ),
-                    onChanged: (_) => _onSlideContentChanged(),
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: _slideSubtitleController,
-                    decoration: const InputDecoration(
-                      labelText: 'Subjudul Slide',
-                      isDense: true,
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _slideSubtitleController,
+                      decoration: const InputDecoration(
+                        labelText: 'Subjudul Slide',
+                        isDense: true,
+                      ),
+                      onChanged: (_) => _onSlideContentChanged(),
                     ),
-                    onChanged: (_) => _onSlideContentChanged(),
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: _slideContentController,
-                    maxLines: 3,
-                    decoration: const InputDecoration(
-                      labelText: 'Poin / Isi Materi',
-                      isDense: true,
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _slideContentController,
+                      maxLines: 3,
+                      decoration: const InputDecoration(
+                        labelText: 'Poin / Isi Materi',
+                        isDense: true,
+                      ),
+                      onChanged: (_) => _onSlideContentChanged(),
                     ),
-                    onChanged: (_) => _onSlideContentChanged(),
-                  ),
-                  const SizedBox(height: 10),
+                    const SizedBox(height: 10),
 
-                  // Theme Selection for Slide
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: [
-                        const Text('Tema Slide:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                        const SizedBox(width: 8),
-                        for (int t = 0; t < _themes.length; t++)
-                          GestureDetector(
-                            onTap: () {
-                              setState(() {
-                                currentSlide.themeIndex = t;
-                                _isDirty = true;
-                              });
-                            },
-                            child: Container(
-                              margin: const EdgeInsets.only(right: 8),
-                              width: 24,
-                              height: 24,
-                              decoration: BoxDecoration(
-                                color: _themes[t]['bg'] as Color,
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: currentSlide.themeIndex == t ? Colors.white : Colors.transparent,
-                                  width: 2,
+                    // Theme Selection for Slide
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [
+                          const Text(
+                            'Tema Slide:',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          for (int t = 0; t < _themes.length; t++)
+                            GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  currentSlide.themeIndex = t;
+                                  _isDirty = true;
+                                });
+                              },
+                              child: Container(
+                                margin: const EdgeInsets.only(right: 8),
+                                width: 24,
+                                height: 24,
+                                decoration: BoxDecoration(
+                                  color: _themes[t]['bg'] as Color,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: currentSlide.themeIndex == t
+                                        ? Colors.white
+                                        : Colors.transparent,
+                                    width: 2,
+                                  ),
                                 ),
                               ),
                             ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // Slide Thumbnails Strip at Bottom
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.grey.shade900,
+                border: const Border(top: BorderSide(color: Colors.white12)),
+              ),
+              child: SafeArea(
+                top: false,
+                child: SizedBox(
+                  height: 80,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Row(
+                      children: [
+                        IconButton(
+                          icon: const Icon(
+                            Icons.add_to_photos_rounded,
+                            color: AppTheme.pptOrange,
                           ),
+                          tooltip: 'Tambah Slide',
+                          onPressed: _addNewSlide,
+                        ),
+                        Expanded(
+                          child: ListView.builder(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: _slides.length,
+                            itemBuilder: (ctx, i) {
+                              final isSelected = i == _activeSlideIndex;
+                              final s = _slides[i];
+                              final theme =
+                                  _themes[s.themeIndex % _themes.length];
+
+                              return GestureDetector(
+                                onTap: () {
+                                  setState(() {
+                                    _activeSlideIndex = i;
+                                    _syncCurrentSlideToControllers();
+                                  });
+                                },
+                                child: Container(
+                                  width: 100,
+                                  margin: const EdgeInsets.only(right: 8),
+                                  padding: const EdgeInsets.all(4),
+                                  decoration: BoxDecoration(
+                                    color: theme['bg'] as Color,
+                                    borderRadius: BorderRadius.circular(6),
+                                    border: Border.all(
+                                      color: isSelected
+                                          ? AppTheme.pptOrange
+                                          : Colors.white24,
+                                      width: isSelected ? 2 : 1,
+                                    ),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Text(
+                                            '${i + 1}',
+                                            style: const TextStyle(
+                                              fontSize: 9,
+                                              color: Colors.white70,
+                                            ),
+                                          ),
+                                          if (_slides.length > 1)
+                                            GestureDetector(
+                                              onTap: () => _deleteSlide(i),
+                                              child: const Icon(
+                                                Icons.close,
+                                                size: 12,
+                                                color: Colors.white54,
+                                              ),
+                                            ),
+                                        ],
+                                      ),
+                                      const Spacer(),
+                                      Text(
+                                        s.title.isEmpty ? 'Slide' : s.title,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.clip,
+                                        style: const TextStyle(
+                                          fontSize: 9,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
                       ],
                     ),
                   ),
-                ],
+                ),
               ),
             ),
-          ),
-
-          // Slide Thumbnails Strip at Bottom
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.grey.shade900,
-              border: const Border(top: BorderSide(color: Colors.white12)),
-            ),
-            child: SafeArea(
-              top: false,
-              child: SizedBox(
-                height: 80,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: Row(
-                    children: [
-                IconButton(
-                  icon: const Icon(Icons.add_to_photos_rounded, color: AppTheme.pptOrange),
-                  tooltip: 'Tambah Slide',
-                  onPressed: _addNewSlide,
-                ),
-                Expanded(
-                  child: ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: _slides.length,
-                    itemBuilder: (ctx, i) {
-                      final isSelected = i == _activeSlideIndex;
-                      final s = _slides[i];
-                      final theme = _themes[s.themeIndex % _themes.length];
-
-                      return GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            _activeSlideIndex = i;
-                            _syncCurrentSlideToControllers();
-                          });
-                        },
-                        child: Container(
-                          width: 100,
-                          margin: const EdgeInsets.only(right: 8),
-                          padding: const EdgeInsets.all(4),
-                          decoration: BoxDecoration(
-                            color: theme['bg'] as Color,
-                            borderRadius: BorderRadius.circular(6),
-                            border: Border.all(
-                              color: isSelected ? AppTheme.pptOrange : Colors.white24,
-                              width: isSelected ? 2 : 1,
-                            ),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    '${i + 1}',
-                                    style: const TextStyle(fontSize: 9, color: Colors.white70),
-                                  ),
-                                  if (_slides.length > 1)
-                                    GestureDetector(
-                                      onTap: () => _deleteSlide(i),
-                                      child: const Icon(Icons.close, size: 12, color: Colors.white54),
-                                    ),
-                                ],
-                              ),
-                              const Spacer(),
-                              Text(
-                                s.title.isEmpty ? 'Slide' : s.title,
-                                maxLines: 1,
-                                overflow: TextOverflow.clip,
-                                style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.white),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    ),
           ],
         ),
       ),
@@ -564,7 +638,11 @@ class FullscreenSlideshow extends StatefulWidget {
   final List<SlideData> slides;
   final List<Map<String, dynamic>> themes;
 
-  const FullscreenSlideshow({super.key, required this.slides, required this.themes});
+  const FullscreenSlideshow({
+    super.key,
+    required this.slides,
+    required this.themes,
+  });
 
   @override
   State<FullscreenSlideshow> createState() => _FullscreenSlideshowState();
@@ -619,7 +697,10 @@ class _FullscreenSlideshowState extends State<FullscreenSlideshow> {
               child: AspectRatio(
                 aspectRatio: 16 / 9,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 16,
+                  ),
                   color: theme['bg'] as Color,
                   child: LayoutBuilder(
                     builder: (context, constraints) {
@@ -683,7 +764,10 @@ class _FullscreenSlideshowState extends State<FullscreenSlideshow> {
                     onPressed: () => Navigator.pop(context),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.black54,
                       borderRadius: BorderRadius.circular(12),
