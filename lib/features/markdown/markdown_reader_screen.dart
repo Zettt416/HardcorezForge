@@ -809,14 +809,20 @@ class _MarkdownReaderScreenState extends State<MarkdownReaderScreen> {
       );
     }
 
-    return ListView.builder(
-      controller: _scrollController,
-      padding: const EdgeInsets.fromLTRB(18, 16, 18, 48),
-      itemCount: filteredBlocks.length,
-      itemBuilder: (context, index) {
-        final block = filteredBlocks[index];
-        return _buildBlockWidget(block, isDark);
-      },
+    return SelectionArea(
+      child: ListView.builder(
+        controller: _scrollController,
+        physics: const AlwaysScrollableScrollPhysics(
+          parent: BouncingScrollPhysics(),
+        ),
+        cacheExtent: 800,
+        padding: const EdgeInsets.fromLTRB(18, 16, 18, 48),
+        itemCount: filteredBlocks.length,
+        itemBuilder: (context, index) {
+          final block = filteredBlocks[index];
+          return _buildBlockWidget(block, isDark);
+        },
+      ),
     );
   }
 
@@ -1093,8 +1099,9 @@ class _MarkdownReaderScreenState extends State<MarkdownReaderScreen> {
           // Code Text Content (horizontal scrollable)
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
             padding: const EdgeInsets.all(14),
-            child: SelectableText(
+            child: Text(
               block.text,
               style: const TextStyle(
                 fontFamily: 'monospace',
@@ -1171,9 +1178,13 @@ class _MarkdownReaderScreenState extends State<MarkdownReaderScreen> {
     );
   }
 
+  static final RegExp _inlinePattern = RegExp(
+    r'(\*\*([^*]+)\*\*)|(\*([^*]+)\*)|(`([^`]+)`)|(~~([^~]+)~~)|(\[([^\]]+)\]\(([^)]+)\))',
+  );
+
   Widget _buildRichText(String text, bool isDark) {
     final spans = _parseInlineFormatting(text, isDark);
-    return SelectableText.rich(
+    return Text.rich(
       TextSpan(children: spans),
       style: TextStyle(
         fontSize: _fontSize,
@@ -1185,12 +1196,9 @@ class _MarkdownReaderScreenState extends State<MarkdownReaderScreen> {
 
   List<InlineSpan> _parseInlineFormatting(String text, bool isDark) {
     final List<InlineSpan> spans = [];
-    final pattern = RegExp(
-      r'(\*\*([^*]+)\*\*)|(\*([^*]+)\*)|(`([^`]+)`)|(~~([^~]+)~~)|(\[([^\]]+)\]\(([^)]+)\))',
-    );
 
     int lastIndex = 0;
-    for (final match in pattern.allMatches(text)) {
+    for (final match in _inlinePattern.allMatches(text)) {
       if (match.start > lastIndex) {
         spans.add(TextSpan(text: text.substring(lastIndex, match.start)));
       }
