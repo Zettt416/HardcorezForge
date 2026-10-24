@@ -1,66 +1,99 @@
-# HardcorezForge
+# ⚡ HardcorezForge
 
-A lightweight, high-performance, and all-in-one mobile office suite built with Flutter. HardcorezForge provides offline document creation, spreadsheet calculations, slide presentations, PDF reading, and digital signature capabilities designed specifically for modern mobile workflows.
+<p align="center">
+  <img src="assets/images/app_logo.png" alt="HardcorezForge Logo" width="120" height="120" style="border-radius: 24px; box-shadow: 0 8px 24px rgba(0,0,0,0.3);" />
+</p>
+
+<p align="center">
+  <strong>The Ultimate 100% Offline, Privacy-First Mobile Office Suite for Android</strong><br>
+  <em>Word Processor • Spreadsheet Calculation Engine • Slide Presentations • PDF Sign & Digital Stamps</em>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Flutter-3.x-02569B?style=for-the-badge&logo=flutter&logoColor=white" alt="Flutter" />
+  <img src="https://img.shields.io/badge/Dart-3.x-0175C2?style=for-the-badge&logo=dart&logoColor=white" alt="Dart" />
+  <img src="https://img.shields.io/badge/Android-Native_Engine-3DDC84?style=for-the-badge&logo=android&logoColor=white" alt="Android" />
+  <img src="https://img.shields.io/badge/Privacy-100%25_Offline-00C853?style=for-the-badge&logo=shield&logoColor=white" alt="100% Offline" />
+  <img src="https://img.shields.io/badge/Zero_Trackers-No_Cloud_Required-FF6D00?style=for-the-badge" alt="Zero Cloud" />
+  <img src="https://img.shields.io/badge/License-MIT-blue?style=for-the-badge" alt="MIT License" />
+</p>
+
+<p align="center">
+  <a href="release/HardcorezForge.apk?raw=true">
+    <img src="https://img.shields.io/badge/📥_Download_APK-v1.0.1_Ready-34A853?style=for-the-badge&logo=android&logoColor=white" alt="Download APK" />
+  </a>
+</p>
 
 ---
 
-## Key Features
+## 🌟 Why HardcorezForge?
 
-### 1. Document Editor (Word / Docs)
-- **Rich Text Formatting**: Bold, italic, underline, bullet lists, numbered lists, and header hierarchy.
-- **Fast & Responsive Canvas**: Optimized mobile text-rendering with live word, character, and line counters.
-- **Docx & ODT Text Extraction**: Native background extraction of modern `.docx` and OpenDocument `.odt` text content.
+Most commercial mobile office applications require intrusive cloud logins, upload private work drafts to third-party tracking servers, bombard users with subscription banners, and fail when working in remote or offline environments.
 
-### 2. Spreadsheet Studio (Excel / Sheets)
-- **Interactive Calculation Grid**: Smooth pan-and-zoom spreadsheet layout with dynamic row and column headers.
-- **Built-in Formula Engine**: Computes cell expressions, mathematical operations (`+`, `-`, `*`, `/`), and statistical functions:
+**HardcorezForge was created on strict zero-compromise privacy principles:**
+- 🛡️ **100% Offline & Private**: All document editing, spreadsheet formulas, slide previews, and PDF signatures run entirely on your local device hardware.
+- ⚡ **Zero Bloat, Zero Subscriptions**: Pure, lightweight performance without telemetry, paywalls, or artificial limits.
+- 📂 **Universal Storage Discovery**: Automatically locates and opens documents from internal storage, SD cards, and modern WhatsApp multi-account document folders without complex file trees.
+
+---
+
+## 🚀 Key Features
+
+### 1. 📝 Document Editor (Word / Docs)
+- **Rich Text Formatting**: Live toggle for bold, italic, underline, structured bullet lists, numbered lists, and header levels.
+- **Real-Time Word Statistics**: Integrated counter for words, characters, and reading time.
+- **Native Docx & ODT Text Extraction**: Reads Microsoft Word (`.docx`) and OpenDocument (`.odt`) files directly on-device.
+
+### 2. 📊 Spreadsheet Studio (Excel / Sheets)
+- **Interactive Calculation Grid**: Pan and scroll spreadsheet canvas with column letters and row indices.
+- **Built-in Formula Engine**: Computes cell expressions, mathematical operators (`+`, `-`, `*`, `/`), and statistical formulas:
   - `=SUM(A1:A10)`
   - `=AVG(B1:B5)`
   - `=COUNT(C1:C20)`
   - `=MIN(D1:D10)`
   - `=MAX(E1:E10)`
-- **CSV & XLSX Support**: Fast native parser for comma/tab-separated values and Microsoft Excel `.xlsx` shared-string structures.
+- **Native CSV & XLSX Parser**: Native Kotlin XML extraction for shared-string `.xlsx` spreadsheets and delimited tabular data (`.csv`, `.tsv`).
 
-### 3. Presentation Studio (PowerPoint / Slides)
-- **Visual Slide Deck Builder**: Create slide outlines, edit titles, bullets, and notes effortlessly.
-- **Preset Themes**: Multiple color palettes and typography treatments.
-- **Fullscreen Presentation Mode**: Distraction-free presentation player with swipeable slide navigation.
+### 3. 📽️ Presentation Studio (PowerPoint / Slides)
+- **Visual Deck Designer**: Build, reorder, and polish presentation slides with custom titles, bullet points, and speaker notes.
+- **Dynamic Theming**: Curated slide color palettes and typography treatments.
+- **Fullscreen Presentation Mode**: Distraction-free mobile slide player with swipe gestures.
 
-### 4. PDF Reader & Digital Signature
-- **Native PDF Engine**: High-fidelity PDF page rendering powered by Android's native `PdfRenderer`.
-- **Digital Signature Pad**: Smooth, customizable digital signature canvas with variable stroke widths, undo, and reset.
-- **Official Stamp Badges**: Pre-configured stamps (Approved, Paid, Confidential, Verified) ready to embed into documents.
-- **Direct PDF Sign Flow**: Select any PDF from device memory and immediately place signatures and stamps.
+### 4. ✍️ PDF Reader & Digital Signature Studio
+- **Hardware-Accelerated PDF Viewer**: Powered by Android's native `PdfRenderer` for sharp, zero-lag page navigation.
+- **Custom Signature Pad**: Draw smooth digital signatures with variable stroke width, undo, and quick-save.
+- **Official Stamp Badges**: Quick-apply pre-configured stamp marks (*Approved*, *Paid*, *Confidential*, *Verified*).
+- **Direct PDF Sign**: 1-tap shortcut to open any PDF and affix digital signatures and stamps directly onto the page.
 
-### 5. Universal Device Document Scanner
-- **Auto-Discovery**: Scans and aggregates office documents across device storage without manual browsing.
-- **WhatsApp Multi-Account Support**: Automatically detects documents received via WhatsApp, WhatsApp Business, multi-account folders, and Telegram.
-- **Storage Access**: Seamless file picking and import from external and internal storage.
-
----
-
-## Tech Stack & Architecture
-
-- **Framework**: [Flutter](https://flutter.dev) (Dart 3.x)
-- **Native Android Layer**: Kotlin with `MethodChannel` for:
-  - Zero-latency hardware-accelerated PDF page rendering (`PdfRenderer`).
-  - Native XML parsing for `.docx` and `.xlsx` without heavy third-party SDK bloat.
-  - Scoped storage permissions (`MANAGE_EXTERNAL_STORAGE` / MediaStore).
-- **Design System**: Material 3 with adaptive light and dark themes.
+### 5. 📂 Universal Device Document Scanner
+- **Automatic Storage Discovery**: Automatically scans Download, Documents, Telegram, and external folders.
+- **WhatsApp Multi-Account Support**: Dynamically detects document directories across WhatsApp personal, WhatsApp Business, and Android multi-account storage trees.
+- **Quick Search & Filtering**: Instant search across filenames and filter chips for Word, Sheets, Slides, and PDF.
 
 ---
 
-## Project Structure
+## 🏗️ Architecture & Native Integration
+
+- **Frontend**: Flutter (Dart 3.x) with Material 3 responsive layout system.
+- **Native Android Engine**: Custom Kotlin `MethodChannel` handler for:
+  - High-performance PDF rendering (`PdfRenderer`).
+  - Native ZIP/XML parsing for `.docx` and `.xlsx` without bulky third-party SDK dependencies.
+  - Storage access and Android Share intents.
+- **Persistence**: Local JSON document repository via `path_provider`.
+
+---
+
+## 📁 Project Structure
 
 ```text
 lib/
 ├── core/
-│   ├── models/         # Document data models and serialization
-│   ├── theme/          # Color tokens, typography, and theme data
-│   └── utils/          # Native platform channels and share utilities
+│   ├── models/         # Document data models and JSON serialization
+│   ├── theme/          # AppTheme palette, typography, and dark/light modes
+│   └── utils/          # Platform channels (PDF renderer, XLSX/DOCX parser)
 ├── data/
-│   ├── device_document_scanner.dart  # Multi-directory office file scanner
-│   └── document_repository.dart      # Local document persistence layer
+│   ├── device_document_scanner.dart  # Multi-directory auto document scanner
+│   └── document_repository.dart      # Local document persistence
 ├── features/
 │   ├── home/           # Main hub, quick action cards, and document browser
 │   ├── pdf_tools/      # PDF viewer and signing integration
@@ -69,15 +102,15 @@ lib/
 │   ├── splash/         # Animated startup splash screen
 │   ├── spreadsheet/    # Grid view, formula bar, and formula engine
 │   └── word_editor/    # Rich document text editor
-└── main.dart           # App entry point and theme bootstrap
+└── main.dart           # App entry point
 ```
 
 ---
 
-## Getting Started
+## 🛠️ Getting Started
 
 ### Prerequisites
-- [Flutter SDK](https://docs.flutter.dev/get-started/install) (v3.19 or later recommended)
+- [Flutter SDK](https://docs.flutter.dev/get-started/install) (v3.19 or later)
 - Android SDK (API Level 21+)
 
 ### Installation & Run
@@ -88,7 +121,7 @@ lib/
    cd HardcorezForge
    ```
 
-2. Fetch dependencies:
+2. Get dependencies:
    ```bash
    flutter pub get
    ```
@@ -107,10 +140,10 @@ lib/
    ```bash
    flutter build apk --release
    ```
-   The compiled APK will be located at `build/app/outputs/flutter-apk/app-release.apk`.
+   The compiled production APK will be at `release/HardcorezForge.apk` and `build/app/outputs/flutter-apk/app-release.apk`.
 
 ---
 
-## License
+## 📄 License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is open-source and available under the [MIT License](LICENSE).
