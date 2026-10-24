@@ -80,7 +80,7 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF090D16), // Premium Deep Obsidian
+      backgroundColor: const Color(0xFF090D16),
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
@@ -97,7 +97,6 @@ class _SplashScreenState extends State<SplashScreen>
                       children: [
                         const Spacer(flex: 2),
 
-                        // Animated Logo with subtle pulsing aura glow
                         ScaleTransition(
                           scale: _scaleAnimation,
                           child: FadeTransition(
@@ -105,7 +104,6 @@ class _SplashScreenState extends State<SplashScreen>
                             child: Stack(
                               alignment: Alignment.center,
                               children: [
-                                // Radial Crimson Glow behind the gear
                                 Container(
                                   width: 200,
                                   height: 200,
@@ -122,7 +120,7 @@ class _SplashScreenState extends State<SplashScreen>
                                     ],
                                   ),
                                 ),
-                                // HardcorezForge Official Logo
+
                                 Image.asset(
                                   'assets/images/app_logo.png',
                                   width: 170,
@@ -136,7 +134,6 @@ class _SplashScreenState extends State<SplashScreen>
 
                         const SizedBox(height: 36),
 
-                        // App Title & Tagline
                         FadeTransition(
                           opacity: _fadeAnimation,
                           child: Column(
@@ -156,9 +153,7 @@ class _SplashScreenState extends State<SplashScreen>
                                     TextSpan(
                                       text: 'FORGE',
                                       style: TextStyle(
-                                        color: Color(
-                                          0xFFDC2626,
-                                        ), // Brand Crimson Red
+                                        color: Color(0xFFDC2626),
                                         fontSize: 26,
                                         fontWeight: FontWeight.w900,
                                         letterSpacing: 2.0,
@@ -184,7 +179,6 @@ class _SplashScreenState extends State<SplashScreen>
 
                         const Spacer(flex: 2),
 
-                        // Three Value Pillars
                         FadeTransition(
                           opacity: _fadeAnimation,
                           child: Container(
@@ -234,7 +228,6 @@ class _SplashScreenState extends State<SplashScreen>
 
                         const Spacer(flex: 3),
 
-                        // Get Started CTA Button in Thumb Zone
                         FadeTransition(
                           opacity: _fadeAnimation,
                           child: SizedBox(

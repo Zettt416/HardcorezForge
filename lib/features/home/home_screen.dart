@@ -31,8 +31,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   bool _isScanningDevice = false;
   bool _hasStoragePermission = true;
   String _searchQuery = '';
-  String _selectedFilter =
-      'all'; // all, device, word, sheet, presentation, pdf, starred
+  String _selectedFilter = 'all';
   DateTime? _lastBackPressTime;
   bool _showGuideOverlay = false;
 
@@ -87,7 +86,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   Future<void> _requestPermission() async {
     await PlatformShare.requestStoragePermission();
-    // After returning from system settings or dialog, re-check
+
     await Future.delayed(const Duration(milliseconds: 500));
     await _checkPermissionAndScan();
   }
@@ -129,7 +128,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       return _deviceDocs;
     }
 
-    // Merge repo docs with device docs, avoiding path duplicates
     final Set<String> existingPaths = _repo.documents
         .where((d) => d.filePath != null)
         .map((d) => d.filePath!)
@@ -141,7 +139,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         combined.add(devDoc);
       }
     }
-    // Sort all documents by updatedAt descending so newest/active files are at the top
+
     combined.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
     return combined;
   }
@@ -151,7 +149,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       final ext = doc.filePath?.split('.').last.toLowerCase() ?? '';
       final isMd = ext == 'md' || doc.title.toLowerCase().endsWith('.md');
 
-      // Filter Category
       if (_selectedFilter == 'device' && doc.filePath == null) return false;
       if (_selectedFilter == 'md' && !isMd) return false;
       if (_selectedFilter == 'word' && (doc.type != DocType.word || isMd)) {
@@ -165,7 +162,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       if (_selectedFilter == 'pdf' && doc.type != DocType.pdf) return false;
       if (_selectedFilter == 'starred' && !doc.isStarred) return false;
 
-      // Search Query
       if (_searchQuery.isNotEmpty) {
         final query = _searchQuery.toLowerCase();
         final matchTitle = doc.title.toLowerCase().contains(query);
@@ -209,7 +205,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       context,
       MaterialPageRoute(builder: (_) => targetScreen),
     );
-    setState(() {}); // refresh after edit
+    setState(() {});
   }
 
   void _createNewDocument(DocType type) async {
@@ -427,6 +423,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   void _shareDocument(DocumentModel doc) {
+    if (doc.filePath != null && File(doc.filePath!).existsSync()) {
+      PlatformShare.shareFile(
+        path: doc.filePath!,
+        title: 'Bagikan ${doc.title}',
+      );
+      return;
+    }
+
     String textContent = 'Dokumen: ${doc.title} (${doc.type.extension})\n\n';
     if (doc.type == DocType.word) {
       try {
@@ -617,14 +621,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
 
-        // Jika overlay panduan sedang aktif, tombol back menutup panduan terlebih dahulu
         if (_showGuideOverlay) {
           setState(() => _showGuideOverlay = false);
           AppGuideOverlay.markGuideSeen();
           return;
         }
 
-        // Jika pencarian sedang aktif terisi teks, tombol back pertama membersihkan pencarian
         if (_searchQuery.isNotEmpty) {
           setState(() {
             _searchController.clear();
@@ -680,7 +682,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               titleSpacing: 16,
               title: Row(
                 children: [
-                  // Clean Logo without box background
                   Image.asset(
                     'assets/images/app_logo.png',
                     width: 34,
@@ -688,7 +689,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     fit: BoxFit.contain,
                   ),
                   const SizedBox(width: 10),
-                  // Title
+
                   Flexible(
                     child: FittedBox(
                       fit: BoxFit.scaleDown,
@@ -724,7 +725,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 ],
               ),
               actions: [
-                // Theme Toggle Button (Dark / Light Mode)
                 Padding(
                   padding: const EdgeInsets.only(right: 6),
                   child: Material(
@@ -764,7 +764,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     ),
                   ),
                 ),
-                // Re-Scan Device Files Button
+
                 Padding(
                   padding: const EdgeInsets.only(right: 6),
                   child: Material(
@@ -803,7 +803,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     ),
                   ),
                 ),
-                // Info Button
+
                 Padding(
                   padding: const EdgeInsets.only(right: 16),
                   child: Material(
@@ -882,7 +882,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     },
                     child: Column(
                       children: [
-                        // Section 1 Header: Creation Hub (Visual Hierarchy Level 1)
                         Padding(
                           padding: const EdgeInsets.fromLTRB(18, 8, 18, 2),
                           child: Row(
@@ -924,7 +923,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                             ],
                           ),
                         ),
-                        // Quick Tools Module Carousel (Horizontal Slider)
+
                         SingleChildScrollView(
                           scrollDirection: Axis.horizontal,
                           physics: const BouncingScrollPhysics(),
@@ -990,7 +989,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           ),
                         ),
 
-                        // Search Bar Capsule & Import Button
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           child: Row(
@@ -1106,7 +1104,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         ),
                         const SizedBox(height: 10),
 
-                        // Category Filter Pills (Zero Layout Shifts)
                         SingleChildScrollView(
                           scrollDirection: Axis.horizontal,
                           padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -1164,7 +1161,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         ),
                         const SizedBox(height: 10),
 
-                        // Storage Permission Warning Banner (if not granted)
                         if (!_hasStoragePermission)
                           Container(
                             margin: const EdgeInsets.fromLTRB(16, 2, 16, 10),
@@ -1254,7 +1250,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                             ),
                           ),
 
-                        // Section 3: Document Workspace & List (Visual Hierarchy Level 3)
                         Padding(
                           padding: const EdgeInsets.fromLTRB(18, 4, 18, 6),
                           child: Row(
@@ -1329,7 +1324,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         ),
                         const SizedBox(height: 4),
 
-                        // Documents List
                         Expanded(
                           child: docs.isEmpty
                               ? _buildEmptyState(isDark)
@@ -1547,7 +1541,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           ),
           child: Row(
             children: [
-              // Squircle Module Avatar
               Container(
                 width: 44,
                 height: 44,
@@ -1565,7 +1558,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               ),
               const SizedBox(width: 14),
 
-              // Title & Metadata
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -1680,7 +1672,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 ),
               ),
 
-              // Star Button
               IconButton(
                 icon: Icon(
                   doc.isStarred
@@ -1701,7 +1692,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 },
               ),
 
-              // More Options
               PopupMenuButton<String>(
                 icon: Icon(
                   Icons.more_vert_rounded,

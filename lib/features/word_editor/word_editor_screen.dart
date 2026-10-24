@@ -2,8 +2,10 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:path_provider/path_provider.dart';
 import '../../core/models/document_model.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/utils/platform_share.dart';
 import '../../data/document_repository.dart';
 
 class WordEditorScreen extends StatefulWidget {
@@ -116,7 +118,6 @@ class _WordEditorScreenState extends State<WordEditorScreen> {
 
     await DocumentRepository.instance.saveDocument(widget.document);
 
-    // Save-back to physical file on device if it's a text/markdown file
     if (widget.document.filePath != null) {
       try {
         final f = File(widget.document.filePath!);
@@ -223,6 +224,177 @@ class _WordEditorScreenState extends State<WordEditorScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _exportTextFile() async {
+    String baseDir = '/storage/emulated/0/Download';
+    if (!Directory(baseDir).existsSync()) {
+      final appDocDir = await getApplicationDocumentsDirectory();
+      baseDir = appDocDir.path;
+    }
+
+    final cleanTitle = widget.document.title
+        .replaceAll(RegExp(r'\.(txt|md|docx|doc)$', caseSensitive: false), '')
+        .replaceAll(RegExp(r'[\\/:*?"<>|]'), '_');
+    final targetPath = '$baseDir/$cleanTitle.txt';
+
+    try {
+      final file = File(targetPath);
+      await file.writeAsString(_bodyController.text);
+
+      final now = DateTime.now();
+      final exportedDoc = DocumentModel(
+        id: 'txt_${now.millisecondsSinceEpoch}',
+        title: '$cleanTitle.txt',
+        type: DocType.word,
+        updatedAt: now,
+        createdAt: now,
+        content: json.encode({
+          'text': _bodyController.text,
+          'fontSize': _fontSize,
+        }),
+        sizeInBytes: await file.length(),
+        filePath: targetPath,
+      );
+      await DocumentRepository.instance.saveDocument(exportedDoc);
+
+      if (!mounted) return;
+
+      final isDark = Theme.of(context).brightness == Brightness.dark;
+      showModalBottomSheet(
+        context: context,
+        backgroundColor: isDark ? AppTheme.darkSurface : Colors.white,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        builder: (ctx) {
+          return Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? const Color(0xFF334155)
+                          : const Color(0xFFE2E8F0),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: AppTheme.docBlue.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(
+                        Icons.description_rounded,
+                        color: AppTheme.docBlue,
+                        size: 24,
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Berkas Teks Fisik Berhasil Dibuat!',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: isDark
+                                  ? Colors.white
+                                  : const Color(0xFF0F172A),
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Tersimpan di: $targetPath',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              color: isDark
+                                  ? AppTheme.darkTextSecondary
+                                  : AppTheme.lightTextSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          side: BorderSide(
+                            color: isDark
+                                ? const Color(0xFF475569)
+                                : const Color(0xFFCBD5E1),
+                          ),
+                        ),
+                        onPressed: () {
+                          Navigator.pop(ctx);
+                          PlatformShare.openFile(path: targetPath);
+                        },
+                        icon: const Icon(Icons.open_in_new_rounded, size: 18),
+                        label: const Text('Buka'),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: FilledButton.icon(
+                        style: FilledButton.styleFrom(
+                          backgroundColor: AppTheme.docBlue,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        onPressed: () {
+                          Navigator.pop(ctx);
+                          PlatformShare.shareFile(
+                            path: targetPath,
+                            title: 'Bagikan $cleanTitle.txt',
+                          );
+                        },
+                        icon: const Icon(Icons.share_rounded, size: 18),
+                        label: const Text('Bagikan Berkas'),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          );
+        },
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal mengekspor berkas: $e'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
   }
 
   void _promptRename() {
@@ -478,6 +650,21 @@ class _WordEditorScreenState extends State<WordEditorScreen> {
               onSelected: (val) {
                 if (val == 'rename') _promptRename();
                 if (val == 'stats') _showStatsDialog();
+                if (val == 'export_txt') _exportTextFile();
+                if (val == 'share') {
+                  if (widget.document.filePath != null &&
+                      File(widget.document.filePath!).existsSync()) {
+                    PlatformShare.shareFile(
+                      path: widget.document.filePath!,
+                      title: 'Bagikan ${widget.document.title}',
+                    );
+                  } else {
+                    PlatformShare.shareText(
+                      text: _bodyController.text,
+                      title: 'Bagikan ${widget.document.title}',
+                    );
+                  }
+                }
                 if (val == 'copy') {
                   Clipboard.setData(ClipboardData(text: _bodyController.text));
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -497,6 +684,26 @@ class _WordEditorScreenState extends State<WordEditorScreen> {
                       Icon(Icons.edit_rounded, size: 18),
                       SizedBox(width: 10),
                       Text('Ganti Nama'),
+                    ],
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: 'export_txt',
+                  child: Row(
+                    children: [
+                      Icon(Icons.file_download_outlined, size: 18),
+                      SizedBox(width: 10),
+                      Text('Ekspor sebagai Berkas (.txt)'),
+                    ],
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: 'share',
+                  child: Row(
+                    children: [
+                      Icon(Icons.share_rounded, size: 18),
+                      SizedBox(width: 10),
+                      Text('Bagikan Dokumen'),
                     ],
                   ),
                 ),
@@ -526,7 +733,6 @@ class _WordEditorScreenState extends State<WordEditorScreen> {
         ),
         body: Column(
           children: [
-            // Elegant Document Info Strip (Uniform across entire app!)
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
               decoration: BoxDecoration(
@@ -633,7 +839,7 @@ class _WordEditorScreenState extends State<WordEditorScreen> {
                 ],
               ),
             ),
-            // Formatting Toolbar (WPS Style)
+
             if (!_isReadOnly)
               Container(
                 padding: const EdgeInsets.symmetric(
@@ -654,20 +860,19 @@ class _WordEditorScreenState extends State<WordEditorScreen> {
                   scrollDirection: Axis.horizontal,
                   child: Row(
                     children: [
-                      // Bold Toggle
                       _buildToolbarIcon(
                         icon: Icons.format_bold,
                         isActive: _isBold,
                         onTap: () => setState(() => _isBold = !_isBold),
                       ),
-                      // Italic Toggle
+
                       _buildToolbarIcon(
                         icon: Icons.format_italic,
                         isActive: _isItalic,
                         onTap: () => setState(() => _isItalic = !_isItalic),
                       ),
                       const VerticalDivider(width: 16),
-                      // Alignment
+
                       _buildToolbarIcon(
                         icon: Icons.format_align_left,
                         isActive: _alignment == TextAlign.left,
@@ -687,7 +892,7 @@ class _WordEditorScreenState extends State<WordEditorScreen> {
                             setState(() => _alignment = TextAlign.right),
                       ),
                       const VerticalDivider(width: 16),
-                      // Lists
+
                       _buildToolbarIcon(
                         icon: Icons.format_list_bulleted,
                         isActive: false,
@@ -699,7 +904,7 @@ class _WordEditorScreenState extends State<WordEditorScreen> {
                         onTap: _insertNumbered,
                       ),
                       const VerticalDivider(width: 16),
-                      // Font Size
+
                       _buildToolbarIcon(
                         icon: Icons.remove,
                         isActive: false,
@@ -729,7 +934,6 @@ class _WordEditorScreenState extends State<WordEditorScreen> {
                 ),
               ),
 
-            // Word Count Indicator Pill
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
               alignment: Alignment.centerLeft,
@@ -751,7 +955,6 @@ class _WordEditorScreenState extends State<WordEditorScreen> {
               ),
             ),
 
-            // Document Paper Canvas
             Expanded(
               child: Container(
                 color: isDark ? AppTheme.darkBg : const Color(0xFFF1F5F9),

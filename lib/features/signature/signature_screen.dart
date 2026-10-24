@@ -44,14 +44,14 @@ class _SignatureScreenState extends State<SignatureScreen> {
   final List<List<SignaturePoint>> _strokes = [];
   List<SignaturePoint>? _currentStroke;
 
-  Color _selectedColor = const Color(0xFF0F172A); // Default dark ink
+  Color _selectedColor = const Color(0xFF0F172A);
   double _strokeWidth = 3.5;
   String? _selectedStamp;
 
   final List<Color> _availableColors = [
-    const Color(0xFF0F172A), // Hitam tinta
-    const Color(0xFF1E40AF), // Biru dokumen resmi
-    const Color(0xFFDC2626), // Merah paraf
+    const Color(0xFF0F172A),
+    const Color(0xFF1E40AF),
+    const Color(0xFFDC2626),
   ];
 
   final List<String> _availableStamps = [
@@ -88,7 +88,6 @@ class _SignatureScreenState extends State<SignatureScreen> {
       return;
     }
 
-    // Deep-copy strokes to avoid referencing state lists
     final savedStrokes = _strokes
         .map(
           (stroke) => stroke
@@ -136,7 +135,6 @@ class _SignatureScreenState extends State<SignatureScreen> {
       ),
       body: Column(
         children: [
-          // Guidance banner
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             color: isDark ? AppTheme.darkSurface : const Color(0xFFEFF6FF),
@@ -163,7 +161,6 @@ class _SignatureScreenState extends State<SignatureScreen> {
             ),
           ),
 
-          // Main Interactive Signature Canvas
           Expanded(
             child: Padding(
               padding: const EdgeInsets.all(16.0),
@@ -184,7 +181,6 @@ class _SignatureScreenState extends State<SignatureScreen> {
                   borderRadius: BorderRadius.circular(14),
                   child: Stack(
                     children: [
-                      // Watermark baseline guidance line
                       Positioned(
                         bottom: 60,
                         left: 40,
@@ -210,7 +206,6 @@ class _SignatureScreenState extends State<SignatureScreen> {
                         ),
                       ),
 
-                      // Optional Stamped Watermark
                       if (_selectedStamp != null)
                         Center(
                           child: Transform.rotate(
@@ -240,7 +235,6 @@ class _SignatureScreenState extends State<SignatureScreen> {
                           ),
                         ),
 
-                      // Touch / Stylus Drawing Area
                       GestureDetector(
                         onPanStart: (details) {
                           setState(() {
@@ -280,7 +274,6 @@ class _SignatureScreenState extends State<SignatureScreen> {
             ),
           ),
 
-          // Bottom Toolbar: Pen Color, Stroke Width, and Quick Stamp Chips
           SafeArea(
             top: false,
             child: Container(
@@ -297,7 +290,6 @@ class _SignatureScreenState extends State<SignatureScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Ink Colors & Stroke Width
                   Row(
                     children: [
                       const Text(
@@ -351,7 +343,6 @@ class _SignatureScreenState extends State<SignatureScreen> {
                   ),
                   const SizedBox(height: 8),
 
-                  // Stamp Selection
                   Row(
                     children: [
                       const Text(
@@ -423,14 +414,12 @@ class SignaturePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    // 1. Draw stamp watermark if provided
     if (stampText != null && stampText!.isNotEmpty) {
       _drawStamp(canvas, size, stampText!);
     }
 
     if (strokes.isEmpty) return;
 
-    // 2. Compute bounding box
     double minX = double.infinity, minY = double.infinity;
     double maxX = -double.infinity, maxY = -double.infinity;
 

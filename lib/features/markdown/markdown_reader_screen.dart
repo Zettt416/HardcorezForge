@@ -25,7 +25,7 @@ enum MdBlockType {
 class MdBlock {
   final MdBlockType type;
   final String text;
-  final String? extra; // Language for codeBlock, task state for taskItem, etc.
+  final String? extra;
   final List<List<String>>? tableRows;
   List<InlineSpan>? spansDark;
   List<InlineSpan>? spansLight;
@@ -129,7 +129,6 @@ class _MarkdownReaderScreenState extends State<MarkdownReaderScreen> {
       final line = lines[i];
       final trimmed = line.trim();
 
-      // 1. Code Block Fence (```)
       if (trimmed.startsWith('```')) {
         if (inCodeBlock) {
           parsed.add(
@@ -155,9 +154,7 @@ class _MarkdownReaderScreenState extends State<MarkdownReaderScreen> {
         continue;
       }
 
-      // 2. Table handling (| col1 | col2 |)
       if (trimmed.startsWith('|') && trimmed.endsWith('|')) {
-        // Skip separator row like |---|---|
         if (_tableSepPattern.hasMatch(trimmed)) {
           continue;
         }
@@ -168,7 +165,6 @@ class _MarkdownReaderScreenState extends State<MarkdownReaderScreen> {
             .toList();
         currentTable.add(cols);
 
-        // Check if next line is still a table row
         final hasNext =
             i + 1 < lines.length && lines[i + 1].trim().startsWith('|');
         if (!hasNext && currentTable.isNotEmpty) {
@@ -184,13 +180,11 @@ class _MarkdownReaderScreenState extends State<MarkdownReaderScreen> {
         continue;
       }
 
-      // 3. Horizontal Rule
       if (trimmed == '---' || trimmed == '***' || trimmed == '___') {
         parsed.add(MdBlock(type: MdBlockType.divider, text: ''));
         continue;
       }
 
-      // 4. Headings
       if (trimmed.startsWith('# ')) {
         parsed.add(
           MdBlock(type: MdBlockType.h1, text: trimmed.substring(2).trim()),
@@ -213,14 +207,12 @@ class _MarkdownReaderScreenState extends State<MarkdownReaderScreen> {
         continue;
       }
 
-      // 5. Blockquotes (> quote)
       if (trimmed.startsWith('>')) {
         final text = trimmed.replaceFirst(_quotePattern, '');
         parsed.add(MdBlock(type: MdBlockType.blockquote, text: text));
         continue;
       }
 
-      // 6. Task List (- [ ] or - [x])
       final taskMatch = _taskPattern.firstMatch(trimmed);
       if (taskMatch != null) {
         final isChecked = taskMatch.group(1)!.toLowerCase() == 'x';
@@ -234,14 +226,12 @@ class _MarkdownReaderScreenState extends State<MarkdownReaderScreen> {
         continue;
       }
 
-      // 7. Bullet Lists (- or * or +)
       if (_bulletMatchPattern.hasMatch(trimmed)) {
         final text = trimmed.replaceFirst(_bulletMatchPattern, '');
         parsed.add(MdBlock(type: MdBlockType.bulletItem, text: text));
         continue;
       }
 
-      // 8. Numbered Lists (1. )
       final numMatch = _numPattern.firstMatch(trimmed);
       if (numMatch != null) {
         parsed.add(
@@ -254,12 +244,10 @@ class _MarkdownReaderScreenState extends State<MarkdownReaderScreen> {
         continue;
       }
 
-      // 9. Blank line
       if (trimmed.isEmpty) {
         continue;
       }
 
-      // 10. Default Paragraph
       parsed.add(MdBlock(type: MdBlockType.paragraph, text: line));
     }
 
@@ -310,7 +298,6 @@ class _MarkdownReaderScreenState extends State<MarkdownReaderScreen> {
 
     await DocumentRepository.instance.saveDocument(widget.document);
 
-    // Save-back to physical disk file if available
     if (widget.document.filePath != null) {
       try {
         final file = File(widget.document.filePath!);
@@ -504,7 +491,6 @@ class _MarkdownReaderScreenState extends State<MarkdownReaderScreen> {
             ),
           ),
           actions: [
-            // Mode Toggle (Baca / Edit)
             IconButton(
               visualDensity: VisualDensity.compact,
               icon: Icon(
@@ -527,7 +513,6 @@ class _MarkdownReaderScreenState extends State<MarkdownReaderScreen> {
               },
             ),
 
-            // Search Toggle
             if (!_isEditing)
               IconButton(
                 visualDensity: VisualDensity.compact,
@@ -550,7 +535,6 @@ class _MarkdownReaderScreenState extends State<MarkdownReaderScreen> {
                 },
               ),
 
-            // Save Button (when editing)
             if (_isEditing)
               IconButton(
                 visualDensity: VisualDensity.compact,
@@ -571,7 +555,6 @@ class _MarkdownReaderScreenState extends State<MarkdownReaderScreen> {
                 onPressed: _saveContent,
               ),
 
-            // More Options
             PopupMenuButton<String>(
               icon: Icon(
                 Icons.more_vert_rounded,
@@ -655,7 +638,6 @@ class _MarkdownReaderScreenState extends State<MarkdownReaderScreen> {
         ),
         body: Column(
           children: [
-            // Elegant Document Info Strip (No collision with AppBar actions!)
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
               decoration: BoxDecoration(
@@ -756,7 +738,7 @@ class _MarkdownReaderScreenState extends State<MarkdownReaderScreen> {
                 ],
               ),
             ),
-            // Search Bar (if searching)
+
             if (_isSearching && !_isEditing)
               Container(
                 padding: const EdgeInsets.symmetric(
@@ -800,7 +782,6 @@ class _MarkdownReaderScreenState extends State<MarkdownReaderScreen> {
                 ),
               ),
 
-            // Main Body: Reader Mode or Raw Editor Mode
             Expanded(
               child: _isEditing
                   ? _buildRawEditor(isDark)
@@ -1095,16 +1076,13 @@ class _MarkdownReaderScreenState extends State<MarkdownReaderScreen> {
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 10),
       decoration: BoxDecoration(
-        color: const Color(
-          0xFF0F172A,
-        ), // Always clean obsidian slate for code blocks
+        color: const Color(0xFF0F172A),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: const Color(0xFF1E293B)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Code Block Header
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
             decoration: const BoxDecoration(
@@ -1158,7 +1136,6 @@ class _MarkdownReaderScreenState extends State<MarkdownReaderScreen> {
             ),
           ),
 
-          // Code Text Content (horizontal scrollable)
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             physics: const BouncingScrollPhysics(),
@@ -1275,7 +1252,6 @@ class _MarkdownReaderScreenState extends State<MarkdownReaderScreen> {
       }
 
       if (match.group(2) != null) {
-        // Bold (**text**)
         spans.add(
           TextSpan(
             text: match.group(2),
@@ -1283,7 +1259,6 @@ class _MarkdownReaderScreenState extends State<MarkdownReaderScreen> {
           ),
         );
       } else if (match.group(4) != null) {
-        // Italic (*text*)
         spans.add(
           TextSpan(
             text: match.group(4),
@@ -1291,7 +1266,6 @@ class _MarkdownReaderScreenState extends State<MarkdownReaderScreen> {
           ),
         );
       } else if (match.group(6) != null) {
-        // Inline code (`code`) - ultra-lightweight TextSpan with background
         spans.add(
           TextSpan(
             text: ' ${match.group(6)!} ',
@@ -1307,7 +1281,6 @@ class _MarkdownReaderScreenState extends State<MarkdownReaderScreen> {
           ),
         );
       } else if (match.group(8) != null) {
-        // Strikethrough (~~text~~)
         spans.add(
           TextSpan(
             text: match.group(8),
@@ -1315,7 +1288,6 @@ class _MarkdownReaderScreenState extends State<MarkdownReaderScreen> {
           ),
         );
       } else if (match.group(10) != null) {
-        // Link [title](url)
         spans.add(
           TextSpan(
             text: match.group(10),

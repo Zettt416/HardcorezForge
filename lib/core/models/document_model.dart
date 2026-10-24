@@ -39,7 +39,7 @@ class DocumentModel {
   final DocType type;
   DateTime updatedAt;
   final DateTime createdAt;
-  String content; // JSON string or plain text content
+  String content;
   bool isStarred;
   int sizeInBytes;
   String? filePath;

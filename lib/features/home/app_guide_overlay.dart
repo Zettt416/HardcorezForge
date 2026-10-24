@@ -32,7 +32,6 @@ class AppGuideOverlay extends StatefulWidget {
 
   static const String _flagFileName = 'hardcorez_guide_seen.flag';
 
-  /// Mengecek apakah panduan perlu ditampilkan (hanya saat belum pernah dilihat)
   static Future<bool> shouldShowGuide() async {
     try {
       final dir = await getApplicationDocumentsDirectory();
@@ -43,7 +42,6 @@ class AppGuideOverlay extends StatefulWidget {
     }
   }
 
-  /// Menandai panduan sudah pernah dilihat
   static Future<void> markGuideSeen() async {
     try {
       final dir = await getApplicationDocumentsDirectory();
@@ -52,7 +50,6 @@ class AppGuideOverlay extends StatefulWidget {
     } catch (_) {}
   }
 
-  /// Reset panduan (berguna untuk pengujian atau manual reset)
   static Future<void> resetGuide() async {
     try {
       final dir = await getApplicationDocumentsDirectory();
@@ -203,7 +200,6 @@ class _AppGuideOverlayState extends State<AppGuideOverlay>
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      // Header Bar: Tag Badge & Skip Button
                       Padding(
                         padding: const EdgeInsets.fromLTRB(20, 18, 14, 0),
                         child: Row(
@@ -251,7 +247,7 @@ class _AppGuideOverlayState extends State<AppGuideOverlay>
                                 ],
                               ),
                             ),
-                            // Skip/Close Button
+
                             IconButton(
                               onPressed: _finishGuide,
                               tooltip: 'Lewati Panduan',
@@ -267,7 +263,6 @@ class _AppGuideOverlayState extends State<AppGuideOverlay>
                         ),
                       ),
 
-                      // Swipeable PageView content
                       SizedBox(
                         height: 290,
                         child: PageView.builder(
@@ -283,7 +278,6 @@ class _AppGuideOverlayState extends State<AppGuideOverlay>
                               child: Column(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  // Icon Badge with Glow
                                   Container(
                                     width: 58,
                                     height: 58,
@@ -315,7 +309,6 @@ class _AppGuideOverlayState extends State<AppGuideOverlay>
                                   ),
                                   const SizedBox(height: 12),
 
-                                  // Step Title
                                   Text(
                                     step.title,
                                     textAlign: TextAlign.center,
@@ -330,7 +323,6 @@ class _AppGuideOverlayState extends State<AppGuideOverlay>
                                   ),
                                   const SizedBox(height: 8),
 
-                                  // Step Description
                                   Text(
                                     step.description,
                                     textAlign: TextAlign.center,
@@ -345,7 +337,6 @@ class _AppGuideOverlayState extends State<AppGuideOverlay>
                                   ),
                                   const SizedBox(height: 12),
 
-                                  // Tags Chips
                                   Wrap(
                                     spacing: 6,
                                     runSpacing: 6,
@@ -392,12 +383,10 @@ class _AppGuideOverlayState extends State<AppGuideOverlay>
 
                       const SizedBox(height: 8),
 
-                      // Indicators & Navigation Action Buttons
                       Padding(
                         padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
                         child: Column(
                           children: [
-                            // Dots Indicator
                             Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: List.generate(_steps.length, (index) {
@@ -422,7 +411,6 @@ class _AppGuideOverlayState extends State<AppGuideOverlay>
                             ),
                             const SizedBox(height: 18),
 
-                            // Action Buttons Row
                             Row(
                               children: [
                                 if (_currentPage > 0)

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:path_provider/path_provider.dart';
 import '../../core/models/document_model.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/platform_share.dart';
@@ -93,7 +94,6 @@ class _SpreadsheetScreenState extends State<SpreadsheetScreen> {
 
     await DocumentRepository.instance.saveDocument(widget.document);
 
-    // Save back to physical CSV/TSV file if imported from device
     if (widget.document.filePath != null) {
       try {
         final f = File(widget.document.filePath!);
@@ -142,7 +142,6 @@ class _SpreadsheetScreenState extends State<SpreadsheetScreen> {
   }
 
   void _applyQuickFormula(String formulaType) {
-    // E.g. SUM for column above selected cell
     final col = _selectedCell.replaceAll(RegExp(r'[0-9]'), '');
     final row =
         int.tryParse(_selectedCell.replaceAll(RegExp(r'[A-Z]'), '')) ?? 1;
@@ -154,7 +153,7 @@ class _SpreadsheetScreenState extends State<SpreadsheetScreen> {
     }
   }
 
-  void _exportCSV() {
+  Future<void> _exportCSV() async {
     final buffer = StringBuffer();
     for (int r = 1; r <= _rowCount; r++) {
       final rowVals = <String>[];
@@ -164,60 +163,212 @@ class _SpreadsheetScreenState extends State<SpreadsheetScreen> {
           formulaOrVal: _cells[key] ?? '',
           cells: _cells,
         );
-        // Escape quotes
+
         rowVals.add('"${val.replaceAll('"', '""')}"');
       }
       buffer.writeln(rowVals.join(','));
     }
 
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Ekspor CSV Selesai'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Pratinjau data CSV:'),
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.black12,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                buffer.toString().split('\n').take(6).join('\n'),
-                style: const TextStyle(fontFamily: 'monospace', fontSize: 11),
-              ),
-            ),
-          ],
+    final csvContent = buffer.toString();
+
+    String baseDir = '/storage/emulated/0/Download';
+    if (!Directory(baseDir).existsSync()) {
+      final appDocDir = await getApplicationDocumentsDirectory();
+      baseDir = appDocDir.path;
+    }
+
+    final cleanTitle = widget.document.title
+        .replaceAll(RegExp(r'\.(csv|tsv|xlsx|xls)$', caseSensitive: false), '')
+        .replaceAll(RegExp(r'[\\/:*?"<>|]'), '_');
+    final targetPath = '$baseDir/$cleanTitle.csv';
+
+    try {
+      final file = File(targetPath);
+      await file.writeAsString(csvContent);
+
+      final now = DateTime.now();
+      final exportedDoc = DocumentModel(
+        id: 'csv_${now.millisecondsSinceEpoch}',
+        title: '$cleanTitle.csv',
+        type: DocType.sheet,
+        updatedAt: now,
+        createdAt: now,
+        content: json.encode({
+          'rows': _rowCount,
+          'cols': _colCount,
+          'cells': _cells,
+        }),
+        sizeInBytes: await file.length(),
+        filePath: targetPath,
+      );
+      await DocumentRepository.instance.saveDocument(exportedDoc);
+
+      if (!mounted) return;
+
+      final isDark = Theme.of(context).brightness == Brightness.dark;
+      showModalBottomSheet(
+        context: context,
+        backgroundColor: isDark ? AppTheme.darkSurface : Colors.white,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Tutup'),
-          ),
-          FilledButton.icon(
-            style: FilledButton.styleFrom(
-              backgroundColor: AppTheme.sheetGreen,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
+        builder: (ctx) {
+          return Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? const Color(0xFF334155)
+                          : const Color(0xFFE2E8F0),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: AppTheme.sheetGreen.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(
+                        Icons.table_chart_rounded,
+                        color: AppTheme.sheetGreen,
+                        size: 24,
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Berkas CSV Fisik Berhasil Dibuat!',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: isDark
+                                  ? Colors.white
+                                  : const Color(0xFF0F172A),
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Tersimpan di: $targetPath',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              color: isDark
+                                  ? AppTheme.darkTextSecondary
+                                  : AppTheme.lightTextSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Pratinjau Data CSV:',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? const Color(0xFF1E293B)
+                        : const Color(0xFFF1F5F9),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: isDark
+                          ? const Color(0xFF334155)
+                          : const Color(0xFFE2E8F0),
+                    ),
+                  ),
+                  child: Text(
+                    csvContent.split('\n').take(5).join('\n'),
+                    style: TextStyle(
+                      fontFamily: 'monospace',
+                      fontSize: 11,
+                      color: isDark ? Colors.white70 : const Color(0xFF334155),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          side: BorderSide(
+                            color: isDark
+                                ? const Color(0xFF475569)
+                                : const Color(0xFFCBD5E1),
+                          ),
+                        ),
+                        onPressed: () {
+                          Navigator.pop(ctx);
+                          PlatformShare.openFile(path: targetPath);
+                        },
+                        icon: const Icon(Icons.open_in_new_rounded, size: 18),
+                        label: const Text('Buka'),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: FilledButton.icon(
+                        style: FilledButton.styleFrom(
+                          backgroundColor: AppTheme.sheetGreen,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        onPressed: () {
+                          Navigator.pop(ctx);
+                          PlatformShare.shareFile(
+                            path: targetPath,
+                            title: 'Bagikan $cleanTitle.csv',
+                          );
+                        },
+                        icon: const Icon(Icons.share_rounded, size: 18),
+                        label: const Text('Bagikan CSV'),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
-            onPressed: () {
-              Navigator.pop(ctx);
-              PlatformShare.shareText(
-                text: buffer.toString(),
-                title: 'Ekspor ${widget.document.title}.csv',
-              );
-            },
-            icon: const Icon(Icons.share_rounded, size: 16),
-            label: const Text('Bagikan CSV'),
+          );
+        },
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal mengekspor berkas CSV: $e'),
+            behavior: SnackBarBehavior.floating,
           ),
-        ],
-      ),
-    );
+        );
+      }
+    }
   }
 
   void _promptRename() {
@@ -541,7 +692,6 @@ class _SpreadsheetScreenState extends State<SpreadsheetScreen> {
         ),
         body: Column(
           children: [
-            // Elegant Document Info Strip (Uniform across entire app!)
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
               decoration: BoxDecoration(
@@ -641,7 +791,7 @@ class _SpreadsheetScreenState extends State<SpreadsheetScreen> {
                 ],
               ),
             ),
-            // Formula Bar (fx)
+
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               decoration: BoxDecoration(
@@ -728,7 +878,6 @@ class _SpreadsheetScreenState extends State<SpreadsheetScreen> {
               ),
             ),
 
-            // Spreadsheet Interactive Grid
             Expanded(
               child: SingleChildScrollView(
                 scrollDirection: Axis.vertical,
@@ -739,7 +888,6 @@ class _SpreadsheetScreenState extends State<SpreadsheetScreen> {
               ),
             ),
 
-            // Bottom Quick Bar for Formulas & Actions
             Container(
               decoration: BoxDecoration(
                 color: isDark ? AppTheme.darkSurface : Colors.grey.shade100,
@@ -857,7 +1005,6 @@ class _SpreadsheetScreenState extends State<SpreadsheetScreen> {
         width: 1,
       ),
       children: [
-        // Header Row (Column Names: A, B, C...)
         TableRow(
           decoration: BoxDecoration(
             color: isDark ? const Color(0xFF1E293B) : Colors.grey.shade200,
@@ -883,11 +1030,9 @@ class _SpreadsheetScreenState extends State<SpreadsheetScreen> {
           ],
         ),
 
-        // Data Rows
         for (int r = 1; r <= _rowCount; r++)
           TableRow(
             children: [
-              // Row Index (1, 2, 3...)
               Container(
                 height: rowHeight,
                 alignment: Alignment.center,
@@ -902,7 +1047,6 @@ class _SpreadsheetScreenState extends State<SpreadsheetScreen> {
                 ),
               ),
 
-              // Cells
               for (int c = 0; c < _colCount; c++)
                 _buildCellWidget(
                   colLetter: _colName(c),
@@ -926,7 +1070,6 @@ class _SpreadsheetScreenState extends State<SpreadsheetScreen> {
     final isSelected = _selectedCell == cellKey;
     final rawVal = _cells[cellKey] ?? '';
 
-    // Calculate formula display
     final displayVal = FormulaEngine.evaluate(
       formulaOrVal: rawVal,
       cells: _cells,

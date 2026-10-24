@@ -4,17 +4,25 @@ import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.Canvas
+import android.graphics.Paint
+import android.graphics.Rect
+import android.graphics.RectF
+import android.graphics.pdf.PdfDocument
 import android.graphics.pdf.PdfRenderer
 import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.os.ParcelFileDescriptor
 import android.provider.Settings
+import androidx.core.content.FileProvider
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import java.io.ByteArrayOutputStream
 import java.io.File
+import java.io.FileOutputStream
 import java.util.zip.ZipFile
 
 class MainActivity : FlutterActivity() {
@@ -59,6 +67,26 @@ class MainActivity : FlutterActivity() {
                     val width = call.argument<Int>("width") ?: 1080
                     val data = renderPdfPage(path, pageIndex, width)
                     result.success(data)
+                }
+                "burnSignaturesToPdf" -> {
+                    val sourcePath = call.argument<String>("sourcePath")
+                    val targetPath = call.argument<String>("targetPath") ?: ""
+                    val signatures = call.argument<List<Map<String, Any>>>("signatures") ?: emptyList()
+                    val title = call.argument<String>("title")
+                    val content = call.argument<String>("content")
+                    val ok = burnSignaturesToPdf(sourcePath, targetPath, signatures, title, content)
+                    result.success(ok)
+                }
+                "shareFile" -> {
+                    val path = call.argument<String>("path") ?: ""
+                    val title = call.argument<String>("title") ?: "Bagikan Berkas"
+                    val ok = shareFile(path, title)
+                    result.success(ok)
+                }
+                "openFile" -> {
+                    val path = call.argument<String>("path") ?: ""
+                    val ok = openFile(path)
+                    result.success(ok)
                 }
                 "shareText" -> {
                     val text = call.argument<String>("text") ?: ""
@@ -162,7 +190,7 @@ class MainActivity : FlutterActivity() {
                     }
                 }
             } else {
-                // OpenDocument Text (.odt)
+
                 val paragraphs = xml.split("</text:p>")
                 val tagRegex = Regex("<[^>]+>")
                 for (p in paragraphs) {
@@ -240,7 +268,7 @@ class MainActivity : FlutterActivity() {
                     "cells" to cells
                 )
             } else {
-                // Check ODS (OpenDocument Spreadsheet)
+
                 val odsEntry = zip.getEntry("content.xml") ?: return emptyMap()
                 val xml = zip.getInputStream(odsEntry).bufferedReader().use { it.readText() }
                 zip.close()
@@ -325,6 +353,245 @@ class MainActivity : FlutterActivity() {
             slides
         } catch (e: Exception) {
             emptyList()
+        }
+    }
+
+    private fun burnSignaturesToPdf(
+        sourcePath: String?,
+        targetPath: String,
+        signatures: List<Map<String, Any>>,
+        documentTitle: String?,
+        documentContent: String?
+    ): Boolean {
+        return try {
+            val targetFile = File(targetPath)
+            targetFile.parentFile?.mkdirs()
+
+            val isReplacing = sourcePath != null &&
+                    File(sourcePath).exists() &&
+                    File(sourcePath).canonicalPath == targetFile.canonicalPath
+
+            val tempFile = if (isReplacing) {
+                File(targetFile.parentFile, "${targetFile.name}.tmp_${System.currentTimeMillis()}")
+            } else {
+                targetFile
+            }
+
+            val pdfDocument = PdfDocument()
+
+            if (sourcePath != null && File(sourcePath).exists()) {
+                val srcFile = File(sourcePath)
+                val pfd = ParcelFileDescriptor.open(srcFile, ParcelFileDescriptor.MODE_READ_ONLY)
+                val renderer = PdfRenderer(pfd)
+                val pageCount = renderer.pageCount
+
+                for (i in 0 until pageCount) {
+                    val page = renderer.openPage(i)
+                    val pw = page.width
+                    val ph = page.height
+
+                    val rw = (pw * 2).coerceAtLeast(720)
+                    val rh = (ph * 2).coerceAtLeast(960)
+                    val pageBitmap = Bitmap.createBitmap(rw, rh, Bitmap.Config.ARGB_8888)
+                    pageBitmap.eraseColor(android.graphics.Color.WHITE)
+                    page.render(pageBitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_PRINT)
+                    page.close()
+
+                    val pageInfo = PdfDocument.PageInfo.Builder(pw, ph, i + 1).create()
+                    val newPage = pdfDocument.startPage(pageInfo)
+                    val canvas = newPage.canvas
+
+                    val srcRect = Rect(0, 0, rw, rh)
+                    val dstRect = RectF(0f, 0f, pw.toFloat(), ph.toFloat())
+                    canvas.drawBitmap(pageBitmap, srcRect, dstRect, null)
+                    pageBitmap.recycle()
+
+                    val pageSigs = signatures.filter { (it["page"] as? Number)?.toInt() == (i + 1) }
+                    for (sig in pageSigs) {
+                        val relX = (sig["relX"] as? Number)?.toFloat() ?: 0f
+                        val relY = (sig["relY"] as? Number)?.toFloat() ?: 0f
+                        val relW = (sig["relW"] as? Number)?.toFloat() ?: 0.35f
+                        val relH = (sig["relH"] as? Number)?.toFloat() ?: 0.15f
+
+                        val sigX = relX * pw
+                        val sigY = relY * ph
+                        val sigW = relW * pw
+                        val sigH = relH * ph
+                        val sigRect = RectF(sigX, sigY, sigX + sigW, sigY + sigH)
+
+                        val imgBytes = sig["imageBytes"] as? ByteArray
+                        if (imgBytes != null && imgBytes.isNotEmpty()) {
+                            val sigBitmap = BitmapFactory.decodeByteArray(imgBytes, 0, imgBytes.size)
+                            if (sigBitmap != null) {
+                                val paint = Paint(Paint.FILTER_BITMAP_FLAG or Paint.ANTI_ALIAS_FLAG)
+                                canvas.drawBitmap(sigBitmap, null, sigRect, paint)
+                                sigBitmap.recycle()
+                            }
+                        }
+                    }
+
+                    pdfDocument.finishPage(newPage)
+                }
+
+                renderer.close()
+                pfd.close()
+            } else {
+
+                val pw = 595
+                val ph = 842
+
+                val maxSigPage = signatures.mapNotNull { (it["page"] as? Number)?.toInt() }.maxOrNull() ?: 1
+                val totalPages = maxOf(maxSigPage, 1)
+
+                val title = documentTitle ?: "Dokumen Resmi"
+                val content = documentContent ?: ""
+
+                for (pageIdx in 1..totalPages) {
+                    val pageInfo = PdfDocument.PageInfo.Builder(pw, ph, pageIdx).create()
+                    val page = pdfDocument.startPage(pageInfo)
+                    val canvas = page.canvas
+
+                    canvas.drawColor(android.graphics.Color.WHITE)
+
+                    val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+
+                    paint.color = android.graphics.Color.parseColor("#0F172A")
+                    paint.textSize = 10f
+                    paint.isFakeBoldText = true
+                    canvas.drawText("HARDCOREZFORGE OFFICIAL DOCUMENT", 40f, 45f, paint)
+
+                    paint.color = android.graphics.Color.parseColor("#94A3B8")
+                    paint.textSize = 9f
+                    paint.isFakeBoldText = false
+                    canvas.drawText("HLM $pageIdx / $totalPages", (pw - 85).toFloat(), 45f, paint)
+
+                    paint.color = android.graphics.Color.parseColor("#E2E8F0")
+                    paint.strokeWidth = 1f
+                    canvas.drawLine(40f, 55f, (pw - 40).toFloat(), 55f, paint)
+
+                    if (pageIdx == 1) {
+                        paint.color = android.graphics.Color.parseColor("#0F172A")
+                        paint.textSize = 16f
+                        paint.isFakeBoldText = true
+                        canvas.drawText(title, 40f, 85f, paint)
+
+                        paint.color = android.graphics.Color.parseColor("#334155")
+                        paint.textSize = 11f
+                        paint.isFakeBoldText = false
+
+                        val lines = content.split("\n")
+                        var y = 115f
+                        for (line in lines) {
+                            if (y > ph - 120) break
+                            canvas.drawText(line, 40f, y, paint)
+                            y += 18f
+                        }
+                    }
+
+                    paint.color = android.graphics.Color.parseColor("#E2E8F0")
+                    canvas.drawLine(40f, (ph - 45).toFloat(), (pw - 40).toFloat(), (ph - 45).toFloat(), paint)
+
+                    paint.color = android.graphics.Color.parseColor("#64748B")
+                    paint.textSize = 8.5f
+                    canvas.drawText("Status: Terverifikasi Digital • HardcorezForge Mobile Office", 40f, (ph - 30).toFloat(), paint)
+
+                    val pageSigs = signatures.filter { (it["page"] as? Number)?.toInt() == pageIdx }
+                    for (sig in pageSigs) {
+                        val relX = (sig["relX"] as? Number)?.toFloat() ?: 0.1f
+                        val relY = (sig["relY"] as? Number)?.toFloat() ?: 0.6f
+                        val relW = (sig["relW"] as? Number)?.toFloat() ?: 0.35f
+                        val relH = (sig["relH"] as? Number)?.toFloat() ?: 0.15f
+
+                        val sigX = relX * pw
+                        val sigY = relY * ph
+                        val sigW = relW * pw
+                        val sigH = relH * ph
+                        val sigRect = RectF(sigX, sigY, sigX + sigW, sigY + sigH)
+
+                        val imgBytes = sig["imageBytes"] as? ByteArray
+                        if (imgBytes != null && imgBytes.isNotEmpty()) {
+                            val sigBitmap = BitmapFactory.decodeByteArray(imgBytes, 0, imgBytes.size)
+                            if (sigBitmap != null) {
+                                val p = Paint(Paint.FILTER_BITMAP_FLAG or Paint.ANTI_ALIAS_FLAG)
+                                canvas.drawBitmap(sigBitmap, null, sigRect, p)
+                                sigBitmap.recycle()
+                            }
+                        }
+                    }
+
+                    pdfDocument.finishPage(page)
+                }
+            }
+
+            FileOutputStream(tempFile).use { fos ->
+                pdfDocument.writeTo(fos)
+            }
+            pdfDocument.close()
+
+            if (isReplacing) {
+                if (targetFile.exists()) {
+                    targetFile.delete()
+                }
+                tempFile.renameTo(targetFile)
+            }
+
+            true
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
+        }
+    }
+
+    private fun shareFile(filePath: String, title: String): Boolean {
+        return try {
+            val file = File(filePath)
+            if (!file.exists()) return false
+            val uri = FileProvider.getUriForFile(this, "$packageName.fileprovider", file)
+            val mimeType = getMimeType(filePath)
+            val intent = Intent(Intent.ACTION_SEND).apply {
+                type = mimeType
+                putExtra(Intent.EXTRA_STREAM, uri)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            startActivity(Intent.createChooser(intent, title))
+            true
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    private fun openFile(filePath: String): Boolean {
+        return try {
+            val file = File(filePath)
+            if (!file.exists()) return false
+            val uri = FileProvider.getUriForFile(this, "$packageName.fileprovider", file)
+            val mimeType = getMimeType(filePath)
+            val intent = Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(uri, mimeType)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            startActivity(Intent.createChooser(intent, "Buka Berkas Dengan"))
+            true
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    private fun getMimeType(path: String): String {
+        val ext = path.substringAfterLast('.', "").lowercase()
+        return when (ext) {
+            "pdf" -> "application/pdf"
+            "docx" -> "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            "doc" -> "application/msword"
+            "xlsx" -> "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            "xls" -> "application/vnd.ms-excel"
+            "pptx" -> "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+            "ppt" -> "application/vnd.ms-powerpoint"
+            "csv" -> "text/csv"
+            "tsv" -> "text/tab-separated-values"
+            "txt" -> "text/plain"
+            "md" -> "text/markdown"
+            else -> "*/*"
         }
     }
 }

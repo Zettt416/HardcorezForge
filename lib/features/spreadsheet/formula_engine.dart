@@ -1,6 +1,4 @@
 class FormulaEngine {
-  /// Evaluates cell content. If it starts with '=', computes the formula.
-  /// Otherwise returns raw string value.
   static String evaluate({
     required String formulaOrVal,
     required Map<String, String> cells,
@@ -14,7 +12,6 @@ class FormulaEngine {
     final currentVisited = visited ?? <String>{};
 
     try {
-      // 1. Check Range Functions: SUM(A1:A5), AVG(A1:A5), MIN, MAX, COUNT
       final funcMatch = RegExp(
         r'^([A-Z]+)\(([A-Z0-9:]+)\)$',
       ).firstMatch(expression);
@@ -24,7 +21,6 @@ class FormulaEngine {
         return _evalRangeFunction(funcName, rangeStr, cells, currentVisited);
       }
 
-      // 2. Check Simple Binary Math: A1+B1, A1-B1, A1*B1, A1/B1
       final binOpMatch = RegExp(
         r'^([A-Z0-9]+)\s*([\+\-\*\/])\s*([A-Z0-9]+)$',
       ).firstMatch(expression);
@@ -63,13 +59,11 @@ class FormulaEngine {
         return _formatNumber(res);
       }
 
-      // 3. Simple Single Cell Reference e.g. =A1
       if (RegExp(r'^[A-Z]+[0-9]+$').hasMatch(expression)) {
         final refVal = _resolveCell(expression, cells, currentVisited);
         return refVal;
       }
 
-      // Fallback: try parsing as number
       final directNum = double.tryParse(expression);
       if (directNum != null) {
         return _formatNumber(directNum);

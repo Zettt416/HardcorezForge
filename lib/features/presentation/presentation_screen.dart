@@ -1,8 +1,11 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:path_provider/path_provider.dart';
 import '../../core/models/document_model.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/utils/platform_share.dart';
 import '../../data/document_repository.dart';
 
 class SlideData {
@@ -232,6 +235,189 @@ class _PresentationScreenState extends State<PresentationScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Presentasi berhasil disimpan'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _exportSlideOutline() async {
+    final buffer = StringBuffer();
+    buffer.writeln('# ${widget.document.title}\n');
+    for (int i = 0; i < _slides.length; i++) {
+      final s = _slides[i];
+      buffer.writeln('## Slide ${i + 1}: ${s.title}');
+      if (s.subtitle.isNotEmpty) {
+        buffer.writeln('### ${s.subtitle}');
+      }
+      buffer.writeln('\n${s.content}\n');
+      buffer.writeln('---\n');
+    }
+
+    String baseDir = '/storage/emulated/0/Download';
+    if (!Directory(baseDir).existsSync()) {
+      final appDocDir = await getApplicationDocumentsDirectory();
+      baseDir = appDocDir.path;
+    }
+
+    final cleanTitle = widget.document.title
+        .replaceAll(
+          RegExp(r'\.(pptx|ppt|odp|gslides)$', caseSensitive: false),
+          '',
+        )
+        .replaceAll(RegExp(r'[\\/:*?"<>|]'), '_');
+    final targetPath = '$baseDir/${cleanTitle}_slides.md';
+
+    try {
+      final file = File(targetPath);
+      await file.writeAsString(buffer.toString());
+
+      final now = DateTime.now();
+      final exportedDoc = DocumentModel(
+        id: 'md_${now.millisecondsSinceEpoch}',
+        title: '${cleanTitle}_slides.md',
+        type: DocType.word,
+        updatedAt: now,
+        createdAt: now,
+        content: json.encode({'text': buffer.toString(), 'fontSize': 15.0}),
+        sizeInBytes: await file.length(),
+        filePath: targetPath,
+      );
+      await DocumentRepository.instance.saveDocument(exportedDoc);
+
+      if (!mounted) return;
+
+      final isDark = Theme.of(context).brightness == Brightness.dark;
+      showModalBottomSheet(
+        context: context,
+        backgroundColor: isDark ? AppTheme.darkSurface : Colors.white,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        builder: (ctx) {
+          return Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? const Color(0xFF334155)
+                          : const Color(0xFFE2E8F0),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: AppTheme.pptOrange.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(
+                        Icons.description_rounded,
+                        color: AppTheme.pptOrange,
+                        size: 24,
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Ringkasan Slide Berhasil Dibuat!',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: isDark
+                                  ? Colors.white
+                                  : const Color(0xFF0F172A),
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Tersimpan di: $targetPath',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              color: isDark
+                                  ? AppTheme.darkTextSecondary
+                                  : AppTheme.lightTextSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          side: BorderSide(
+                            color: isDark
+                                ? const Color(0xFF475569)
+                                : const Color(0xFFCBD5E1),
+                          ),
+                        ),
+                        onPressed: () {
+                          Navigator.pop(ctx);
+                          PlatformShare.openFile(path: targetPath);
+                        },
+                        icon: const Icon(Icons.open_in_new_rounded, size: 18),
+                        label: const Text('Buka'),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: FilledButton.icon(
+                        style: FilledButton.styleFrom(
+                          backgroundColor: AppTheme.pptOrange,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        onPressed: () {
+                          Navigator.pop(ctx);
+                          PlatformShare.shareFile(
+                            path: targetPath,
+                            title: 'Bagikan ${cleanTitle}_slides.md',
+                          );
+                        },
+                        icon: const Icon(Icons.share_rounded, size: 18),
+                        label: const Text('Bagikan Berkas'),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          );
+        },
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal mengekspor slide: $e'),
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -507,6 +693,22 @@ class _PresentationScreenState extends State<PresentationScreen> {
               onSelected: (val) {
                 if (val == 'rename') _promptRename();
                 if (val == 'slideshow') _startSlideshow();
+                if (val == 'export_outline') _exportSlideOutline();
+                if (val == 'share') {
+                  if (widget.document.filePath != null &&
+                      File(widget.document.filePath!).existsSync()) {
+                    PlatformShare.shareFile(
+                      path: widget.document.filePath!,
+                      title: 'Bagikan ${widget.document.title}',
+                    );
+                  } else {
+                    PlatformShare.shareText(
+                      text:
+                          'Presentasi: ${widget.document.title}\n${_slides.length} slide.',
+                      title: 'Bagikan ${widget.document.title}',
+                    );
+                  }
+                }
                 if (val == 'add_slide') _addNewSlide();
                 if (val == 'duplicate_slide') _duplicateCurrentSlide();
               },
@@ -518,6 +720,26 @@ class _PresentationScreenState extends State<PresentationScreen> {
                       Icon(Icons.edit_rounded, size: 18),
                       SizedBox(width: 10),
                       Text('Ganti Nama'),
+                    ],
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: 'export_outline',
+                  child: Row(
+                    children: [
+                      Icon(Icons.file_download_outlined, size: 18),
+                      SizedBox(width: 10),
+                      Text('Ekspor Ringkasan (.md)'),
+                    ],
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: 'share',
+                  child: Row(
+                    children: [
+                      Icon(Icons.share_rounded, size: 18),
+                      SizedBox(width: 10),
+                      Text('Bagikan Berkas'),
                     ],
                   ),
                 ),
@@ -561,7 +783,6 @@ class _PresentationScreenState extends State<PresentationScreen> {
         ),
         body: Column(
           children: [
-            // Elegant Document Info Strip (Uniform across entire app!)
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
               decoration: BoxDecoration(
@@ -673,7 +894,7 @@ class _PresentationScreenState extends State<PresentationScreen> {
                 ],
               ),
             ),
-            // Slide Canvas Preview
+
             Expanded(
               flex: 6,
               child: Container(
@@ -681,7 +902,7 @@ class _PresentationScreenState extends State<PresentationScreen> {
                 color: Colors.black87,
                 child: Center(
                   child: AspectRatio(
-                    aspectRatio: 16 / 9, // Standard widescreen 16:9
+                    aspectRatio: 16 / 9,
                     child: Container(
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
@@ -739,7 +960,6 @@ class _PresentationScreenState extends State<PresentationScreen> {
               ),
             ),
 
-            // Slide Editor Input Fields
             Expanded(
               flex: 5,
               child: SingleChildScrollView(
@@ -779,7 +999,6 @@ class _PresentationScreenState extends State<PresentationScreen> {
                     ),
                     const SizedBox(height: 10),
 
-                    // Theme Selection for Slide
                     SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
                       child: Row(
@@ -824,7 +1043,6 @@ class _PresentationScreenState extends State<PresentationScreen> {
               ),
             ),
 
-            // Slide Thumbnails Strip at Bottom
             Container(
               decoration: BoxDecoration(
                 color: Colors.grey.shade900,
@@ -1051,7 +1269,6 @@ class _FullscreenSlideshowState extends State<FullscreenSlideshow> {
               ),
             ),
 
-            // Top Bar with Exit and Counter
             Positioned(
               top: 24,
               left: 24,

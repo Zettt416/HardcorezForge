@@ -141,13 +141,11 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      // Step 1 check
       expect(find.text('LANGKAH 1 DARI 3'), findsOneWidget);
       expect(find.text('Modul Office Cepat'), findsOneWidget);
       expect(find.text('Lanjut'), findsOneWidget);
       expect(find.text('Lewati'), findsOneWidget);
 
-      // Tap Lanjut to go to Step 2
       await tester.tap(find.text('Lanjut'));
       await tester.pumpAndSettle();
 
@@ -155,7 +153,6 @@ void main() {
       expect(find.text('Pindai & Impor Berkas HP'), findsOneWidget);
       expect(find.text('Kembali'), findsOneWidget);
 
-      // Tap Lanjut to go to Step 3
       await tester.tap(find.text('Lanjut'));
       await tester.pumpAndSettle();
 
@@ -163,7 +160,6 @@ void main() {
       expect(find.text('Tanda Tangan & Stempel Resmi'), findsOneWidget);
       expect(find.text('Mulai Bekerja'), findsOneWidget);
 
-      // Tap Mulai Bekerja to finish
       await tester.tap(find.text('Mulai Bekerja'));
       await tester.pumpAndSettle();
 
@@ -264,14 +260,12 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      // Long press on header title
       await tester.longPress(find.text(longTitle));
       await tester.pumpAndSettle();
 
-      // Verify bottom sheet appears with full title and copy button
       expect(find.text('Nama Lengkap Dokumen'), findsOneWidget);
       expect(find.text('Salin Nama Berkas'), findsOneWidget);
-      expect(find.text(longTitle), findsNWidgets(2)); // in header and sheet
+      expect(find.text(longTitle), findsNWidgets(2));
       expect(tester.takeException(), isNull);
     });
   });
@@ -333,5 +327,37 @@ void main() {
         findsOneWidget,
       );
     });
+
+    testWidgets(
+      'PdfReaderScreen triggers save options when signatures are present',
+      (tester) async {
+        final doc = DocumentModel(
+          id: 'pdf_signed_test',
+          title: 'Kontrak Kerja.pdf',
+          type: DocType.pdf,
+          updatedAt: DateTime.now(),
+          createdAt: DateTime.now(),
+          content:
+              '{"signatures":[{"x":50.0,"y":50.0,"w":100.0,"h":50.0,"page":1,"strokes":[]}]}',
+        );
+
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: AppTheme.lightTheme,
+            home: PdfReaderScreen(document: doc),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final saveBtn = find.byTooltip('Simpan Dokumen');
+        expect(saveBtn, findsOneWidget);
+        await tester.tap(saveBtn);
+        await tester.pumpAndSettle();
+
+        expect(find.text('Simpan Dokumen PDF'), findsOneWidget);
+        expect(find.text('Simpan sebagai Berkas Baru'), findsOneWidget);
+        expect(find.text('Timpa Berkas Asli (Replace)'), findsOneWidget);
+      },
+    );
   });
 }

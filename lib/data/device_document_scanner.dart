@@ -26,7 +26,6 @@ class DeviceDocumentScanner {
     'pdf',
   ];
 
-  /// Scans common storage locations on the device for office documents
   static Future<List<DocumentModel>> scanAllDeviceDocuments() async {
     final List<DocumentModel> results = [];
     final Set<String> foundPaths = {};
@@ -41,7 +40,6 @@ class DeviceDocumentScanner {
       '/storage/emulated/0',
     ];
 
-    // Dynamically discover modern WhatsApp multi-account folders if accessible
     try {
       final waAccountsDir = Directory(
         '/storage/emulated/0/Android/media/com.whatsapp/WhatsApp/accounts',
@@ -86,7 +84,6 @@ class DeviceDocumentScanner {
               await _processFile(entity, results, foundPaths);
             } else if (entity is Directory &&
                 dirPath != '/storage/emulated/0') {
-              // Also inspect 1-level subdirectories of Download & Documents
               try {
                 final dirName = entity.uri.pathSegments.isNotEmpty
                     ? entity
@@ -113,7 +110,6 @@ class DeviceDocumentScanner {
       }
     }
 
-    // Sort by last modified descending
     results.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
     return results;
   }
@@ -166,14 +162,13 @@ class DeviceDocumentScanner {
         type: docType,
         updatedAt: modified,
         createdAt: modified,
-        content: '', // Lazily loaded when opened
+        content: '',
         sizeInBytes: size,
         filePath: file.path,
       ),
     );
   }
 
-  /// Prepare and populate content when a device file is opened
   static Future<void> loadDeviceFileContent(DocumentModel doc) async {
     if (doc.filePath == null) return;
     final file = File(doc.filePath!);
@@ -181,7 +176,6 @@ class DeviceDocumentScanner {
 
     final ext = doc.filePath!.split('.').last.toLowerCase();
 
-    // 1. Spreadsheet formats (CSV, TSV, XLSX, XLS, ODS, GSHEET)
     if (['csv', 'tsv'].contains(ext)) {
       try {
         final lines = await file.readAsLines();
@@ -253,9 +247,7 @@ class DeviceDocumentScanner {
       } catch (_) {
         doc.content = json.encode({'rows': 20, 'cols': 8, 'cells': {}});
       }
-    }
-    // 2. Presentation formats (PPTX, PPT, ODP, GSLIDES)
-    else if (['pptx', 'ppt', 'odp'].contains(ext)) {
+    } else if (['pptx', 'ppt', 'odp'].contains(ext)) {
       try {
         final slides = await PlatformShare.extractPptxSlides(doc.filePath!);
         if (slides != null && slides.isNotEmpty) {
@@ -302,9 +294,7 @@ class DeviceDocumentScanner {
       } catch (_) {
         doc.content = json.encode({'slides': []});
       }
-    }
-    // 3. Word & Text formats (DOCX, ODT, GDOC, RTF, TXT, MD, DOC)
-    else if (['docx', 'odt'].contains(ext)) {
+    } else if (['docx', 'odt'].contains(ext)) {
       try {
         final text = await PlatformShare.extractDocxText(doc.filePath!);
         if (text != null && text.trim().isNotEmpty) {
@@ -353,7 +343,7 @@ class DeviceDocumentScanner {
     } else if (ext == 'rtf') {
       try {
         final raw = await file.readAsString();
-        // Simple regex strip of RTF control words
+
         final cleanText = raw
             .replaceAll(RegExp(r'\\par[d]?'), '\n')
             .replaceAll(RegExp(r'\\[a-zA-Z0-9]+[ ]?'), '')
@@ -367,12 +357,10 @@ class DeviceDocumentScanner {
         });
       }
     } else if (ext == 'pdf') {
-      // Berkas PDF di-render secara dinamis dari file via native PdfRenderer
       if (doc.content.isEmpty) {
         doc.content = json.encode({'text': doc.title, 'signatures': []});
       }
     } else {
-      // Plain text, Markdown, or raw fallback
       try {
         final text = await file.readAsString();
         doc.content = json.encode({'text': text, 'fontSize': 15.0});
