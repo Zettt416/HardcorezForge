@@ -261,6 +261,15 @@ class _MarkdownReaderScreenState extends State<MarkdownReaderScreen> {
     });
   }
 
+  String _formatReadingTime(int minutes) {
+    if (minutes <= 1) return '1 mnt baca';
+    if (minutes < 60) return '$minutes mnt baca';
+    final hours = minutes ~/ 60;
+    final mins = minutes % 60;
+    if (mins == 0) return '$hours jam baca';
+    return '$hours jam $mins mnt baca';
+  }
+
   @override
   void dispose() {
     _editorController.dispose();
@@ -656,7 +665,7 @@ class _MarkdownReaderScreenState extends State<MarkdownReaderScreen> {
                   ),
                   const SizedBox(width: 4),
                   Text(
-                    '$_readingTimeMinutes mnt baca',
+                    _formatReadingTime(_readingTimeMinutes),
                     style: TextStyle(
                       fontSize: 11,
                       color: isDark
@@ -684,15 +693,28 @@ class _MarkdownReaderScreenState extends State<MarkdownReaderScreen> {
                     ),
                   ),
                   const Spacer(),
-                  Text(
-                    '${_fontSize.toInt()}pt',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      color: isDark
-                          ? AppTheme.darkTextSecondary
-                          : AppTheme.lightTextSecondary,
-                    ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.format_size_rounded,
+                        size: 13,
+                        color: isDark
+                            ? AppTheme.darkTextSecondary
+                            : AppTheme.lightTextSecondary,
+                      ),
+                      const SizedBox(width: 3),
+                      Text(
+                        '${_fontSize.toInt()}pt',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: isDark
+                              ? AppTheme.darkTextSecondary
+                              : AppTheme.lightTextSecondary,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
