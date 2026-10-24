@@ -28,6 +28,9 @@ class _WordEditorScreenState extends State<WordEditorScreen> {
 
   int _wordCount = 0;
   int _charCount = 0;
+  final ValueNotifier<String> _countNotifier = ValueNotifier<String>(
+    '0 kata • 0 karakter',
+  );
 
   @override
   void initState() {
@@ -40,7 +43,8 @@ class _WordEditorScreenState extends State<WordEditorScreen> {
   void _loadDocument() {
     try {
       if (widget.document.content.isNotEmpty) {
-        final data = json.decode(widget.document.content) as Map<String, dynamic>;
+        final data =
+            json.decode(widget.document.content) as Map<String, dynamic>;
         _bodyController.text = data['text'] as String? ?? '';
         _fontSize = (data['fontSize'] as num?)?.toDouble() ?? 15.0;
       }
@@ -54,16 +58,16 @@ class _WordEditorScreenState extends State<WordEditorScreen> {
     final text = _bodyController.text.trim();
     _charCount = text.length;
     _wordCount = text.isEmpty ? 0 : text.split(RegExp(r'\s+')).length;
+    _countNotifier.value = '$_wordCount kata • $_charCount karakter';
     _isDirty = false;
   }
 
   void _updateCounts() {
+    _isDirty = true;
     final text = _bodyController.text.trim();
-    setState(() {
-      _charCount = text.length;
-      _wordCount = text.isEmpty ? 0 : text.split(RegExp(r'\s+')).length;
-      _isDirty = true;
-    });
+    _charCount = text.length;
+    _wordCount = text.isEmpty ? 0 : text.split(RegExp(r'\s+')).length;
+    _countNotifier.value = '$_wordCount kata • $_charCount karakter';
   }
 
   @override
@@ -71,6 +75,7 @@ class _WordEditorScreenState extends State<WordEditorScreen> {
     _titleController.dispose();
     _bodyController.dispose();
     _focusNode.dispose();
+    _countNotifier.dispose();
     super.dispose();
   }
 
@@ -125,7 +130,9 @@ class _WordEditorScreenState extends State<WordEditorScreen> {
       final newText = text.replaceRange(selection.start, selection.end, bullet);
       _bodyController.value = TextEditingValue(
         text: newText,
-        selection: TextSelection.collapsed(offset: selection.start + bullet.length),
+        selection: TextSelection.collapsed(
+          offset: selection.start + bullet.length,
+        ),
       );
     } else {
       _bodyController.text += bullet;
@@ -137,10 +144,16 @@ class _WordEditorScreenState extends State<WordEditorScreen> {
     final selection = _bodyController.selection;
     const numPrefix = '\n1. ';
     if (selection.isValid && selection.start >= 0) {
-      final newText = text.replaceRange(selection.start, selection.end, numPrefix);
+      final newText = text.replaceRange(
+        selection.start,
+        selection.end,
+        numPrefix,
+      );
       _bodyController.value = TextEditingValue(
         text: newText,
-        selection: TextSelection.collapsed(offset: selection.start + numPrefix.length),
+        selection: TextSelection.collapsed(
+          offset: selection.start + numPrefix.length,
+        ),
       );
     } else {
       _bodyController.text += numPrefix;
@@ -159,7 +172,10 @@ class _WordEditorScreenState extends State<WordEditorScreen> {
             const Divider(),
             _buildStatRow('Jumlah Karakter', '$_charCount'),
             const Divider(),
-            _buildStatRow('Estimasi Waktu Baca', '${(_wordCount / 200).ceil()} menit'),
+            _buildStatRow(
+              'Estimasi Waktu Baca',
+              '${(_wordCount / 200).ceil()} menit',
+            ),
           ],
         ),
         actions: [
@@ -198,245 +214,300 @@ class _WordEditorScreenState extends State<WordEditorScreen> {
       },
       child: Scaffold(
         backgroundColor: isDark ? AppTheme.darkBg : const Color(0xFFF1F5F9),
-      appBar: AppBar(
-        backgroundColor: isDark ? AppTheme.darkBg : Colors.white,
-        foregroundColor: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: () => Navigator.pop(context),
-        ),
-        titleSpacing: 0,
-        title: Row(
-          children: [
-            Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: isDark ? AppTheme.docBlue.withValues(alpha: 0.2) : AppTheme.docBlueLight,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppTheme.docBlue.withValues(alpha: 0.25), width: 1),
-              ),
-              child: const Icon(Icons.article_rounded, color: AppTheme.docBlue, size: 18),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: TextField(
-                controller: _titleController,
-                style: TextStyle(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 16,
-                  letterSpacing: -0.2,
-                  color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
-                ),
-                decoration: InputDecoration(
-                  border: InputBorder.none,
-                  hintText: 'Nama Dokumen',
-                  hintStyle: TextStyle(
-                    color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+        appBar: AppBar(
+          backgroundColor: isDark ? AppTheme.darkBg : Colors.white,
+          foregroundColor: isDark
+              ? AppTheme.darkTextPrimary
+              : AppTheme.lightTextPrimary,
+          elevation: 0,
+          scrolledUnderElevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_rounded),
+            onPressed: () => Navigator.pop(context),
+          ),
+          titleSpacing: 0,
+          title: Row(
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? AppTheme.docBlue.withValues(alpha: 0.2)
+                      : AppTheme.docBlueLight,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: AppTheme.docBlue.withValues(alpha: 0.25),
+                    width: 1,
                   ),
                 ),
-                onChanged: (_) => setState(() => _isDirty = true),
+                child: const Icon(
+                  Icons.article_rounded,
+                  color: AppTheme.docBlue,
+                  size: 18,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: TextField(
+                  controller: _titleController,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 16,
+                    letterSpacing: -0.2,
+                    color: isDark
+                        ? AppTheme.darkTextPrimary
+                        : AppTheme.lightTextPrimary,
+                  ),
+                  decoration: InputDecoration(
+                    border: InputBorder.none,
+                    hintText: 'Nama Dokumen',
+                    hintStyle: TextStyle(
+                      color: isDark
+                          ? AppTheme.darkTextSecondary
+                          : AppTheme.lightTextSecondary,
+                    ),
+                  ),
+                  onChanged: (_) => setState(() => _isDirty = true),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            IconButton(
+              icon: Icon(
+                Icons.info_outline_rounded,
+                color: isDark
+                    ? AppTheme.darkTextSecondary
+                    : AppTheme.lightTextSecondary,
+              ),
+              tooltip: 'Statistik Dokumen',
+              onPressed: _showStatsDialog,
+            ),
+            Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: _isSaving
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : TextButton.icon(
+                      style: TextButton.styleFrom(
+                        backgroundColor: _isDirty
+                            ? AppTheme.primaryBlue
+                            : (isDark
+                                  ? AppTheme.darkSurface
+                                  : const Color(0xFFE2E8F0)),
+                        foregroundColor: _isDirty
+                            ? Colors.white
+                            : (isDark
+                                  ? AppTheme.darkTextSecondary
+                                  : AppTheme.lightTextSecondary),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
+                      ),
+                      icon: Icon(
+                        Icons.save_rounded,
+                        size: 16,
+                        color: _isDirty
+                            ? Colors.white
+                            : (isDark
+                                  ? AppTheme.darkTextSecondary
+                                  : AppTheme.lightTextSecondary),
+                      ),
+                      label: Text(
+                        _isDirty ? 'Simpan' : 'Tersimpan',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      onPressed: _saveDocument,
+                    ),
+            ),
+          ],
+        ),
+        body: Column(
+          children: [
+            // Formatting Toolbar (WPS Style)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: isDark ? AppTheme.darkSurface : Colors.white,
+                border: Border(
+                  bottom: BorderSide(
+                    color: isDark ? AppTheme.darkBorder : AppTheme.lightBorder,
+                  ),
+                ),
+              ),
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    // Bold Toggle
+                    _buildToolbarIcon(
+                      icon: Icons.format_bold,
+                      isActive: _isBold,
+                      onTap: () => setState(() => _isBold = !_isBold),
+                    ),
+                    // Italic Toggle
+                    _buildToolbarIcon(
+                      icon: Icons.format_italic,
+                      isActive: _isItalic,
+                      onTap: () => setState(() => _isItalic = !_isItalic),
+                    ),
+                    const VerticalDivider(width: 16),
+                    // Alignment
+                    _buildToolbarIcon(
+                      icon: Icons.format_align_left,
+                      isActive: _alignment == TextAlign.left,
+                      onTap: () => setState(() => _alignment = TextAlign.left),
+                    ),
+                    _buildToolbarIcon(
+                      icon: Icons.format_align_center,
+                      isActive: _alignment == TextAlign.center,
+                      onTap: () =>
+                          setState(() => _alignment = TextAlign.center),
+                    ),
+                    _buildToolbarIcon(
+                      icon: Icons.format_align_right,
+                      isActive: _alignment == TextAlign.right,
+                      onTap: () => setState(() => _alignment = TextAlign.right),
+                    ),
+                    const VerticalDivider(width: 16),
+                    // Lists
+                    _buildToolbarIcon(
+                      icon: Icons.format_list_bulleted,
+                      isActive: false,
+                      onTap: _insertBullet,
+                    ),
+                    _buildToolbarIcon(
+                      icon: Icons.format_list_numbered,
+                      isActive: false,
+                      onTap: _insertNumbered,
+                    ),
+                    const VerticalDivider(width: 16),
+                    // Font Size
+                    _buildToolbarIcon(
+                      icon: Icons.remove,
+                      isActive: false,
+                      onTap: () {
+                        if (_fontSize > 11) setState(() => _fontSize -= 1);
+                      },
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 6),
+                      child: Text(
+                        '${_fontSize.toInt()} pt',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                    _buildToolbarIcon(
+                      icon: Icons.add,
+                      isActive: false,
+                      onTap: () {
+                        if (_fontSize < 32) setState(() => _fontSize += 1);
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // Word Count Indicator Pill
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
+              alignment: Alignment.centerLeft,
+              color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+              child: ValueListenableBuilder<String>(
+                valueListenable: _countNotifier,
+                builder: (context, countText, _) {
+                  return Text(
+                    countText,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                      color: isDark
+                          ? AppTheme.darkTextSecondary
+                          : AppTheme.lightTextSecondary,
+                    ),
+                  );
+                },
+              ),
+            ),
+
+            // Document Paper Canvas
+            Expanded(
+              child: Container(
+                color: isDark ? AppTheme.darkBg : const Color(0xFFF1F5F9),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+                child: Center(
+                  child: Container(
+                    constraints: const BoxConstraints(maxWidth: 700),
+                    decoration: BoxDecoration(
+                      color: isDark ? AppTheme.darkSurface : Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: isDark
+                            ? AppTheme.darkBorder
+                            : AppTheme.lightBorder,
+                        width: 1,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(
+                            alpha: isDark ? 0.2 : 0.04,
+                          ),
+                          blurRadius: 10,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    padding: const EdgeInsets.all(24),
+                    child: TextField(
+                      controller: _bodyController,
+                      focusNode: _focusNode,
+                      maxLines: null,
+                      expands: true,
+                      textAlign: _alignment,
+                      style: TextStyle(
+                        fontSize: _fontSize,
+                        fontWeight: _isBold
+                            ? FontWeight.bold
+                            : FontWeight.normal,
+                        fontStyle: _isItalic
+                            ? FontStyle.italic
+                            : FontStyle.normal,
+                        height: 1.6,
+                        color: isDark
+                            ? AppTheme.darkTextPrimary
+                            : AppTheme.lightTextPrimary,
+                      ),
+                      decoration: const InputDecoration(
+                        border: InputBorder.none,
+                        hintText: 'Mulai ketik dokumen Anda di sini',
+                        hintStyle: TextStyle(color: Colors.grey),
+                      ),
+                    ),
+                  ),
+                ),
               ),
             ),
           ],
         ),
-        actions: [
-          IconButton(
-            icon: Icon(
-              Icons.info_outline_rounded,
-              color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
-            ),
-            tooltip: 'Statistik Dokumen',
-            onPressed: _showStatsDialog,
-          ),
-          Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: _isSaving
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : TextButton.icon(
-                    style: TextButton.styleFrom(
-                      backgroundColor: _isDirty
-                          ? AppTheme.primaryBlue
-                          : (isDark ? AppTheme.darkSurface : const Color(0xFFE2E8F0)),
-                      foregroundColor: _isDirty
-                          ? Colors.white
-                          : (isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    ),
-                    icon: Icon(
-                      Icons.save_rounded,
-                      size: 16,
-                      color: _isDirty
-                          ? Colors.white
-                          : (isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary),
-                    ),
-                    label: Text(
-                      _isDirty ? 'Simpan' : 'Tersimpan',
-                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
-                    ),
-                    onPressed: _saveDocument,
-                  ),
-          ),
-        ],
       ),
-      body: Column(
-        children: [
-          // Formatting Toolbar (WPS Style)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-              color: isDark ? AppTheme.darkSurface : Colors.white,
-              border: Border(
-                bottom: BorderSide(
-                  color: isDark ? AppTheme.darkBorder : AppTheme.lightBorder,
-                ),
-              ),
-            ),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  // Bold Toggle
-                  _buildToolbarIcon(
-                    icon: Icons.format_bold,
-                    isActive: _isBold,
-                    onTap: () => setState(() => _isBold = !_isBold),
-                  ),
-                  // Italic Toggle
-                  _buildToolbarIcon(
-                    icon: Icons.format_italic,
-                    isActive: _isItalic,
-                    onTap: () => setState(() => _isItalic = !_isItalic),
-                  ),
-                  const VerticalDivider(width: 16),
-                  // Alignment
-                  _buildToolbarIcon(
-                    icon: Icons.format_align_left,
-                    isActive: _alignment == TextAlign.left,
-                    onTap: () => setState(() => _alignment = TextAlign.left),
-                  ),
-                  _buildToolbarIcon(
-                    icon: Icons.format_align_center,
-                    isActive: _alignment == TextAlign.center,
-                    onTap: () => setState(() => _alignment = TextAlign.center),
-                  ),
-                  _buildToolbarIcon(
-                    icon: Icons.format_align_right,
-                    isActive: _alignment == TextAlign.right,
-                    onTap: () => setState(() => _alignment = TextAlign.right),
-                  ),
-                  const VerticalDivider(width: 16),
-                  // Lists
-                  _buildToolbarIcon(
-                    icon: Icons.format_list_bulleted,
-                    isActive: false,
-                    onTap: _insertBullet,
-                  ),
-                  _buildToolbarIcon(
-                    icon: Icons.format_list_numbered,
-                    isActive: false,
-                    onTap: _insertNumbered,
-                  ),
-                  const VerticalDivider(width: 16),
-                  // Font Size
-                  _buildToolbarIcon(
-                    icon: Icons.remove,
-                    isActive: false,
-                    onTap: () {
-                      if (_fontSize > 11) setState(() => _fontSize -= 1);
-                    },
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 6),
-                    child: Text(
-                      '${_fontSize.toInt()} pt',
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                    ),
-                  ),
-                  _buildToolbarIcon(
-                    icon: Icons.add,
-                    isActive: false,
-                    onTap: () {
-                      if (_fontSize < 32) setState(() => _fontSize += 1);
-                    },
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          // Word Count Indicator Pill
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
-            alignment: Alignment.centerLeft,
-            color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
-            child: Text(
-              '$_wordCount kata • $_charCount karakter',
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w500,
-                color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
-              ),
-            ),
-          ),
-
-          // Document Paper Canvas
-          Expanded(
-            child: Container(
-              color: isDark ? AppTheme.darkBg : const Color(0xFFF1F5F9),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: Center(
-                child: Container(
-                  constraints: const BoxConstraints(maxWidth: 700),
-                  decoration: BoxDecoration(
-                    color: isDark ? AppTheme.darkSurface : Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: isDark ? AppTheme.darkBorder : AppTheme.lightBorder,
-                      width: 1,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
-                        blurRadius: 10,
-                        offset: const Offset(0, 3),
-                      ),
-                    ],
-                  ),
-                  padding: const EdgeInsets.all(24),
-                  child: TextField(
-                    controller: _bodyController,
-                    focusNode: _focusNode,
-                    maxLines: null,
-                    expands: true,
-                    textAlign: _alignment,
-                    style: TextStyle(
-                      fontSize: _fontSize,
-                      fontWeight: _isBold ? FontWeight.bold : FontWeight.normal,
-                      fontStyle: _isItalic ? FontStyle.italic : FontStyle.normal,
-                      height: 1.6,
-                      color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
-                    ),
-                    decoration: const InputDecoration(
-                      border: InputBorder.none,
-                      hintText: 'Mulai ketik dokumen Anda di sini',
-                      hintStyle: TextStyle(color: Colors.grey),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    ),
     );
   }
 
@@ -448,7 +519,9 @@ class _WordEditorScreenState extends State<WordEditorScreen> {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 2),
       child: Material(
-        color: isActive ? AppTheme.docBlue.withValues(alpha: 0.18) : Colors.transparent,
+        color: isActive
+            ? AppTheme.docBlue.withValues(alpha: 0.18)
+            : Colors.transparent,
         borderRadius: BorderRadius.circular(6),
         child: InkWell(
           borderRadius: BorderRadius.circular(6),

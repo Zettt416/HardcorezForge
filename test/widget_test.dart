@@ -7,6 +7,7 @@ import 'package:hardcorez_forge/features/spreadsheet/spreadsheet_screen.dart';
 import 'package:hardcorez_forge/features/signature/signature_screen.dart';
 import 'package:hardcorez_forge/features/splash/splash_screen.dart';
 import 'package:hardcorez_forge/features/home/app_guide_overlay.dart';
+import 'package:hardcorez_forge/features/markdown/markdown_reader_screen.dart';
 
 void main() {
   group('DocumentModel serialization', () {
@@ -192,6 +193,48 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(dismissed, isTrue);
+      expect(tester.takeException(), isNull);
+    });
+  });
+
+  group('MarkdownReaderScreen Test', () {
+    testWidgets('Renders parsed markdown elements smoothly in reader mode', (
+      tester,
+    ) async {
+      final doc = DocumentModel(
+        id: 'md_test_1',
+        title: 'README.md',
+        type: DocType.word,
+        updatedAt: DateTime.now(),
+        createdAt: DateTime.now(),
+        content:
+            '# HardcorezForge Office\n\n'
+            'Suite kantor mobile mandiri.\n\n'
+            '## Fitur Unggulan\n'
+            '- 100% Offline\n'
+            '- Tanpa iklan\n\n'
+            '```dart\n'
+            'void main() => print("Hello");\n'
+            '```\n\n'
+            '> Catatan penting privasi berkas.\n',
+        filePath: '/storage/emulated/0/Download/README.md',
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.darkTheme,
+          home: MarkdownReaderScreen(document: doc),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(find.text('README.md'), findsOneWidget);
+      expect(find.text('MARKDOWN READER'), findsOneWidget);
+      expect(find.text('HardcorezForge Office'), findsOneWidget);
+      expect(find.text('Fitur Unggulan'), findsOneWidget);
+      expect(find.text('Catatan penting privasi berkas.'), findsOneWidget);
+      expect(find.text('Salin'), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
   });

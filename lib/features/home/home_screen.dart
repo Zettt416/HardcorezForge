@@ -14,6 +14,7 @@ import '../pdf_tools/pdf_reader_screen.dart';
 import '../presentation/presentation_screen.dart';
 import '../spreadsheet/spreadsheet_screen.dart';
 import '../word_editor/word_editor_screen.dart';
+import '../markdown/markdown_reader_screen.dart';
 import 'app_guide_overlay.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -176,20 +177,25 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
     if (!mounted) return;
 
+    final ext = doc.filePath?.split('.').last.toLowerCase() ?? '';
     Widget targetScreen;
-    switch (doc.type) {
-      case DocType.sheet:
-        targetScreen = SpreadsheetScreen(document: doc);
-        break;
-      case DocType.presentation:
-        targetScreen = PresentationScreen(document: doc);
-        break;
-      case DocType.pdf:
-        targetScreen = PdfReaderScreen(document: doc);
-        break;
-      case DocType.word:
-        targetScreen = WordEditorScreen(document: doc);
-        break;
+    if (ext == 'md' || doc.title.toLowerCase().endsWith('.md')) {
+      targetScreen = MarkdownReaderScreen(document: doc);
+    } else {
+      switch (doc.type) {
+        case DocType.sheet:
+          targetScreen = SpreadsheetScreen(document: doc);
+          break;
+        case DocType.presentation:
+          targetScreen = PresentationScreen(document: doc);
+          break;
+        case DocType.pdf:
+          targetScreen = PdfReaderScreen(document: doc);
+          break;
+        case DocType.word:
+          targetScreen = WordEditorScreen(document: doc);
+          break;
+      }
     }
 
     await Navigator.push(
@@ -784,7 +790,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         showAboutDialog(
                           context: context,
                           applicationName: 'HardcorezForge',
-                          applicationVersion: '1.0.2',
+                          applicationVersion: '1.0.3',
                           applicationIcon: Image.asset(
                             'assets/images/app_logo.png',
                             width: 44,
@@ -1625,6 +1631,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 onSelected: (val) async {
                   if (val == 'open') {
                     _openDocument(doc);
+                  } else if (val == 'open_md') {
+                    await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => MarkdownReaderScreen(document: doc),
+                      ),
+                    );
+                    setState(() {});
                   } else if (val == 'rename') {
                     _showRenameDialog(doc);
                   } else if (val == 'duplicate') {
@@ -1641,18 +1655,41 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     child: Row(
                       children: [
                         Icon(
-                          Icons.edit_outlined,
+                          doc.filePath?.toLowerCase().endsWith('.md') ?? false
+                              ? Icons.chrome_reader_mode_outlined
+                              : Icons.edit_outlined,
                           size: 18,
                           color: isDark ? Colors.white : Colors.black87,
                         ),
                         const SizedBox(width: 10),
-                        const Text(
-                          'Buka & Edit',
-                          style: TextStyle(fontSize: 13),
+                        Text(
+                          doc.filePath?.toLowerCase().endsWith('.md') ?? false
+                              ? 'Baca Mode Markdown'
+                              : 'Buka & Edit',
+                          style: const TextStyle(fontSize: 13),
                         ),
                       ],
                     ),
                   ),
+                  if (doc.type == DocType.word &&
+                      !(doc.filePath?.toLowerCase().endsWith('.md') ?? false))
+                    PopupMenuItem(
+                      value: 'open_md',
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.chrome_reader_mode_outlined,
+                            size: 18,
+                            color: isDark ? Colors.white : Colors.black87,
+                          ),
+                          const SizedBox(width: 10),
+                          const Text(
+                            'Baca Mode Markdown',
+                            style: TextStyle(fontSize: 13),
+                          ),
+                        ],
+                      ),
+                    ),
                   PopupMenuItem(
                     value: 'rename',
                     child: Row(
