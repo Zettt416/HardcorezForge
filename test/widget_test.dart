@@ -6,6 +6,7 @@ import 'package:hardcorez_forge/features/word_editor/word_editor_screen.dart';
 import 'package:hardcorez_forge/features/spreadsheet/spreadsheet_screen.dart';
 import 'package:hardcorez_forge/features/signature/signature_screen.dart';
 import 'package:hardcorez_forge/features/splash/splash_screen.dart';
+import 'package:hardcorez_forge/features/home/app_guide_overlay.dart';
 
 void main() {
   group('DocumentModel serialization', () {
@@ -82,39 +83,88 @@ void main() {
   });
 
   group('SignatureScreen Layout Test', () {
-    testWidgets('Renders toolbar, slider, and stamps without overflow on narrow screen', (tester) async {
-      tester.view.physicalSize = const Size(360, 640);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(() => tester.view.resetPhysicalSize());
+    testWidgets(
+      'Renders toolbar, slider, and stamps without overflow on narrow screen',
+      (tester) async {
+        tester.view.physicalSize = const Size(360, 640);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(() => tester.view.resetPhysicalSize());
 
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: AppTheme.lightTheme,
-          home: const SignatureScreen(),
-        ),
-      );
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: AppTheme.lightTheme,
+            home: const SignatureScreen(),
+          ),
+        );
 
-      expect(find.text('Tanda Tangan & Stempel'), findsOneWidget);
-      expect(find.text('Tinta:'), findsOneWidget);
-      expect(find.text('Tebal:'), findsOneWidget);
-      expect(find.text('Stempel:'), findsOneWidget);
-      expect(tester.takeException(), isNull);
-    });
+        expect(find.text('Tanda Tangan & Stempel'), findsOneWidget);
+        expect(find.text('Tinta:'), findsOneWidget);
+        expect(find.text('Tebal:'), findsOneWidget);
+        expect(find.text('Stempel:'), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      },
+    );
   });
 
   group('SplashScreen Layout Test', () {
-    testWidgets('Renders properly without overflow on short screen', (tester) async {
+    testWidgets('Renders properly without overflow on short screen', (
+      tester,
+    ) async {
       tester.view.physicalSize = const Size(360, 500);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(() => tester.view.resetPhysicalSize());
 
+      await tester.pumpWidget(const MaterialApp(home: SplashScreen()));
+
+      expect(find.text('Mulai Bekerja'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+  });
+
+  group('AppGuideOverlay Layout & Navigation Test', () {
+    testWidgets('Renders guide overlay and navigates steps cleanly', (
+      tester,
+    ) async {
+      bool dismissed = false;
+
       await tester.pumpWidget(
-        const MaterialApp(
-          home: SplashScreen(),
+        MaterialApp(
+          theme: AppTheme.darkTheme,
+          home: Scaffold(
+            body: AppGuideOverlay(onDismiss: () => dismissed = true),
+          ),
         ),
       );
 
+      await tester.pumpAndSettle();
+
+      // Step 1 check
+      expect(find.text('LANGKAH 1 DARI 3'), findsOneWidget);
+      expect(find.text('Modul Office Cepat'), findsOneWidget);
+      expect(find.text('Lanjut'), findsOneWidget);
+      expect(find.text('Lewati'), findsOneWidget);
+
+      // Tap Lanjut to go to Step 2
+      await tester.tap(find.text('Lanjut'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('LANGKAH 2 DARI 3'), findsOneWidget);
+      expect(find.text('Pindai & Impor Berkas HP'), findsOneWidget);
+      expect(find.text('Kembali'), findsOneWidget);
+
+      // Tap Lanjut to go to Step 3
+      await tester.tap(find.text('Lanjut'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('LANGKAH 3 DARI 3'), findsOneWidget);
+      expect(find.text('Tanda Tangan & Stempel Resmi'), findsOneWidget);
       expect(find.text('Mulai Bekerja'), findsOneWidget);
+
+      // Tap Mulai Bekerja to finish
+      await tester.tap(find.text('Mulai Bekerja'));
+      await tester.pumpAndSettle();
+
+      expect(dismissed, isTrue);
       expect(tester.takeException(), isNull);
     });
   });

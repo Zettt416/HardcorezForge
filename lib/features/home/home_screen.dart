@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../../core/models/document_model.dart';
 import '../../core/theme/app_theme.dart';
@@ -13,6 +14,7 @@ import '../pdf_tools/pdf_reader_screen.dart';
 import '../presentation/presentation_screen.dart';
 import '../spreadsheet/spreadsheet_screen.dart';
 import '../word_editor/word_editor_screen.dart';
+import 'app_guide_overlay.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -28,7 +30,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   bool _isScanningDevice = false;
   bool _hasStoragePermission = true;
   String _searchQuery = '';
-  String _selectedFilter = 'all'; // all, device, word, sheet, presentation, pdf, starred
+  String _selectedFilter =
+      'all'; // all, device, word, sheet, presentation, pdf, starred
+  DateTime? _lastBackPressTime;
+  bool _showGuideOverlay = false;
 
   List<DocumentModel> _deviceDocs = [];
 
@@ -37,6 +42,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _loadDocs();
+    _checkGuideStatus();
+  }
+
+  Future<void> _checkGuideStatus() async {
+    final shouldShow = await AppGuideOverlay.shouldShowGuide();
+    if (mounted && shouldShow) {
+      setState(() => _showGuideOverlay = true);
+    }
   }
 
   @override
@@ -98,7 +111,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               ),
               duration: const Duration(seconds: 2),
               behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
           );
         }
@@ -136,7 +151,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       if (_selectedFilter == 'device' && doc.filePath == null) return false;
       if (_selectedFilter == 'word' && doc.type != DocType.word) return false;
       if (_selectedFilter == 'sheet' && doc.type != DocType.sheet) return false;
-      if (_selectedFilter == 'presentation' && doc.type != DocType.presentation) return false;
+      if (_selectedFilter == 'presentation' &&
+          doc.type != DocType.presentation) {
+        return false;
+      }
       if (_selectedFilter == 'pdf' && doc.type != DocType.pdf) return false;
       if (_selectedFilter == 'starred' && !doc.isStarred) return false;
 
@@ -214,8 +232,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     _openDocument(newDoc);
   }
 
-
-
   void _showRenameDialog(DocumentModel doc) {
     final controller = TextEditingController(text: doc.title);
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -224,7 +240,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: isDark ? AppTheme.darkCard : Colors.white,
-        title: const Text('Ganti Nama Dokumen', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        title: const Text(
+          'Ganti Nama Dokumen',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
         content: TextField(
           controller: controller,
           autofocus: true,
@@ -239,7 +258,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             child: const Text('Batal'),
           ),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: AppTheme.primaryBlue),
+            style: FilledButton.styleFrom(
+              backgroundColor: AppTheme.primaryBlue,
+            ),
             onPressed: () async {
               final newTitle = controller.text.trim();
               if (newTitle.isNotEmpty) {
@@ -266,7 +287,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         SnackBar(
           content: Text('Salinan "${duplicated.title}" berhasil dibuat!'),
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
         ),
       );
       setState(() {});
@@ -290,7 +313,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 color: Colors.redAccent.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 22),
+              child: const Icon(
+                Icons.delete_outline_rounded,
+                color: Colors.redAccent,
+                size: 22,
+              ),
             ),
             const SizedBox(width: 12),
             const Expanded(
@@ -307,7 +334,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               : 'Apakah Anda yakin ingin menghapus "${doc.title}"? Tindakan ini tidak dapat dibatalkan.',
           style: TextStyle(
             fontSize: 14,
-            color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+            color: isDark
+                ? AppTheme.darkTextSecondary
+                : AppTheme.lightTextSecondary,
           ),
         ),
         actions: [
@@ -324,7 +353,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           FilledButton(
             style: FilledButton.styleFrom(
               backgroundColor: Colors.redAccent,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
             onPressed: () async {
               Navigator.pop(ctx);
@@ -334,7 +365,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   if (await file.exists()) {
                     await file.delete();
                   }
-                  _deviceDocs.removeWhere((d) => d.id == doc.id || d.filePath == doc.filePath);
+                  _deviceDocs.removeWhere(
+                    (d) => d.id == doc.id || d.filePath == doc.filePath,
+                  );
                 }
               } catch (_) {}
 
@@ -345,12 +378,17 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   SnackBar(
                     content: Text('Dokumen "${doc.title}" berhasil dihapus'),
                     behavior: SnackBarBehavior.floating,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                   ),
                 );
               }
             },
-            child: const Text('Hapus', style: TextStyle(fontWeight: FontWeight.bold)),
+            child: const Text(
+              'Hapus',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
           ),
         ],
       ),
@@ -377,9 +415,24 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       final result = await FilePicker.pickFiles(
         type: FileType.custom,
         allowedExtensions: [
-          'docx', 'doc', 'gdoc', 'odt', 'rtf', 'txt', 'md',
-          'xlsx', 'xls', 'gsheet', 'ods', 'csv', 'tsv',
-          'pptx', 'ppt', 'gslides', 'odp', 'pdf'
+          'docx',
+          'doc',
+          'gdoc',
+          'odt',
+          'rtf',
+          'txt',
+          'md',
+          'xlsx',
+          'xls',
+          'gsheet',
+          'ods',
+          'csv',
+          'tsv',
+          'pptx',
+          'ppt',
+          'gslides',
+          'odp',
+          'pdf',
         ],
       );
 
@@ -389,7 +442,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         final extension = fileName.split('.').last.toLowerCase();
 
         DocType docType;
-        if (['xlsx', 'xls', 'csv', 'tsv', 'ods', 'gsheet'].contains(extension)) {
+        if ([
+          'xlsx',
+          'xls',
+          'csv',
+          'tsv',
+          'ods',
+          'gsheet',
+        ].contains(extension)) {
           docType = DocType.sheet;
         } else if (['pptx', 'ppt', 'odp', 'gslides'].contains(extension)) {
           docType = DocType.presentation;
@@ -420,7 +480,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             SnackBar(
               content: Text('Berkas "$fileName" berhasil diimpor!'),
               behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
           );
           _openDocument(importedDoc);
@@ -432,7 +494,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           SnackBar(
             content: Text('Batal atau gagal memilih berkas: $e'),
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
           ),
         );
       }
@@ -453,7 +517,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
         final pdfDoc = DocumentModel(
           id: 'pdf_${now.millisecondsSinceEpoch}',
-          title: fileName.replaceAll(RegExp(r'\.pdf$', caseSensitive: false), ''),
+          title: fileName.replaceAll(
+            RegExp(r'\.pdf$', caseSensitive: false),
+            '',
+          ),
           type: DocType.pdf,
           updatedAt: now,
           createdAt: now,
@@ -514,483 +581,704 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final docs = _filteredDocs;
 
-    return Scaffold(
-      backgroundColor: isDark ? AppTheme.darkBg : AppTheme.lightBg,
-      appBar: AppBar(
-        backgroundColor: isDark ? AppTheme.darkBg : AppTheme.lightBg,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        titleSpacing: 16,
-        title: Row(
-          children: [
-            // Clean Logo without box background
-            Image.asset(
-              'assets/images/app_logo.png',
-              width: 34,
-              height: 34,
-              fit: BoxFit.contain,
-            ),
-            const SizedBox(width: 10),
-            // Title
-            Flexible(
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: Alignment.centerLeft,
-                child: RichText(
-                  text: TextSpan(
-                    children: [
-                      TextSpan(
-                        text: 'Hardcorez',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w900,
-                          fontSize: 18,
-                          letterSpacing: -0.4,
-                          color: isDark ? Colors.white : const Color(0xFF0F172A),
-                        ),
-                      ),
-                      const TextSpan(
-                        text: 'Forge',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w900,
-                          fontSize: 18,
-                          letterSpacing: -0.4,
-                          color: AppTheme.brandCrimson,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          // Theme Toggle Button (Dark / Light Mode)
-          Padding(
-            padding: const EdgeInsets.only(right: 6),
-            child: Material(
-              color: isDark ? AppTheme.darkSurface : Colors.white,
-              borderRadius: BorderRadius.circular(10),
-              child: InkWell(
-                borderRadius: BorderRadius.circular(10),
-                onTap: () {
-                  final current = HardcorezForgeApp.themeNotifier.value;
-                  HardcorezForgeApp.themeNotifier.value =
-                      current == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark;
-                },
-                child: Container(
-                  width: 38,
-                  height: 38,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: isDark ? AppTheme.darkBorder : AppTheme.lightBorder,
-                      width: 1,
-                    ),
-                  ),
-                  child: Icon(
-                    isDark ? Icons.light_mode_rounded : Icons.dark_mode_outlined,
-                    size: 19,
-                    color: isDark ? Colors.amber : const Color(0xFF475569),
-                  ),
-                ),
-              ),
-            ),
-          ),
-          // Re-Scan Device Files Button
-          Padding(
-            padding: const EdgeInsets.only(right: 6),
-            child: Material(
-              color: isDark ? AppTheme.darkSurface : Colors.white,
-              borderRadius: BorderRadius.circular(10),
-              child: InkWell(
-                borderRadius: BorderRadius.circular(10),
-                onTap: () => _checkPermissionAndScan(silent: false),
-                child: Container(
-                  width: 38,
-                  height: 38,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: isDark ? AppTheme.darkBorder : AppTheme.lightBorder,
-                      width: 1,
-                    ),
-                  ),
-                  child: _isScanningDevice
-                      ? const Padding(
-                          padding: EdgeInsets.all(10),
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : Icon(
-                          Icons.refresh_rounded,
-                          size: 20,
-                          color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
-                        ),
-                ),
-              ),
-            ),
-          ),
-          // Info Button
-          Padding(
-            padding: const EdgeInsets.only(right: 16),
-            child: Material(
-              color: isDark ? AppTheme.darkSurface : Colors.white,
-              borderRadius: BorderRadius.circular(10),
-              child: InkWell(
-                borderRadius: BorderRadius.circular(10),
-                onTap: () {
-                  showAboutDialog(
-                    context: context,
-                    applicationName: 'HardcorezForge',
-                    applicationVersion: '1.0.0',
-                    applicationIcon: Image.asset(
-                      'assets/images/app_logo.png',
-                      width: 44,
-                      height: 44,
-                      fit: BoxFit.contain,
-                    ),
-                    children: const [
-                      Text(
-                        'All-in-One Mobile Office Suite mandiri: Word, Excel Spreadsheet dengan Formula Engine, PowerPoint Slide Deck, PDF Document Reader, dan Vector Signature/Stamp Engine tanpa iklan.',
-                        style: TextStyle(fontSize: 13, height: 1.5),
-                      ),
-                    ],
-                  );
-                },
-                child: Container(
-                  width: 38,
-                  height: 38,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: isDark ? AppTheme.darkBorder : AppTheme.lightBorder,
-                      width: 1,
-                    ),
-                  ),
-                  child: Icon(
-                    Icons.info_outline_rounded,
-                    size: 19,
-                    color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-              onRefresh: () async {
-                await _repo.init();
-                await _scanDeviceFiles();
-              },
-              child: Column(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+
+        // Jika overlay panduan sedang aktif, tombol back menutup panduan terlebih dahulu
+        if (_showGuideOverlay) {
+          setState(() => _showGuideOverlay = false);
+          AppGuideOverlay.markGuideSeen();
+          return;
+        }
+
+        // Jika pencarian sedang aktif terisi teks, tombol back pertama membersihkan pencarian
+        if (_searchQuery.isNotEmpty) {
+          setState(() {
+            _searchController.clear();
+            _searchQuery = '';
+          });
+          return;
+        }
+
+        final now = DateTime.now();
+        if (_lastBackPressTime == null ||
+            now.difference(_lastBackPressTime!) > const Duration(seconds: 2)) {
+          _lastBackPressTime = now;
+          ScaffoldMessenger.of(context).removeCurrentSnackBar();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Row(
                 children: [
-                  // Quick Tools 4-Module Card Strip
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 6, 16, 10),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: _buildQuickModuleCard(
-                            icon: Icons.article_rounded,
-                            color: AppTheme.docBlue,
-                            bgColor: isDark ? const Color(0xFF131D33) : AppTheme.docBlueLight,
-                            label: 'Word',
-                            tag: '.docx',
-                            onTap: () => _createNewDocument(DocType.word),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: _buildQuickModuleCard(
-                            icon: Icons.table_chart_rounded,
-                            color: AppTheme.sheetGreen,
-                            bgColor: isDark ? const Color(0xFF0D251D) : AppTheme.sheetGreenLight,
-                            label: 'Excel',
-                            tag: '.xlsx',
-                            onTap: () => _createNewDocument(DocType.sheet),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: _buildQuickModuleCard(
-                            icon: Icons.slideshow_rounded,
-                            color: AppTheme.pptOrange,
-                            bgColor: isDark ? const Color(0xFF281810) : AppTheme.pptOrangeLight,
-                            label: 'PPT',
-                            tag: '.pptx',
-                            onTap: () => _createNewDocument(DocType.presentation),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: _buildQuickModuleCard(
-                            icon: Icons.draw_rounded,
-                            color: const Color(0xFF7C3AED),
-                            bgColor: isDark ? const Color(0xFF1F1433) : const Color(0xFFF5F3FF),
-                            label: 'Tanda Tangan',
-                            tag: 'PDF Sign',
-                            onTap: _pickPdfToSign,
-                          ),
-                        ),
-                      ],
+                  Icon(Icons.info_outline, color: Colors.white, size: 20),
+                  SizedBox(width: 10),
+                  Text(
+                    'Tekan sekali lagi untuk keluar',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w600,
                     ),
-                  ),
-
-                  // Search Bar Capsule & Import Button
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Container(
-                            height: 46,
-                            decoration: BoxDecoration(
-                              color: isDark ? const Color(0xFF111726) : const Color(0xFFF1F5F9),
-                              borderRadius: BorderRadius.circular(14),
-                              border: Border.all(
-                                color: isDark ? AppTheme.darkBorder : const Color(0xFFE2E8F0),
-                                width: 1,
-                              ),
-                            ),
-                            padding: const EdgeInsets.symmetric(horizontal: 14),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.search_rounded,
-                                  size: 20,
-                                  color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
-                                ),
-                                const SizedBox(width: 10),
-                                Expanded(
-                                  child: TextField(
-                                    controller: _searchController,
-                                    decoration: InputDecoration(
-                                      hintText: 'Cari berkas dokumen, rumus, atau tipe',
-                                      hintStyle: TextStyle(
-                                        fontSize: 13,
-                                        color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8),
-                                      ),
-                                      border: InputBorder.none,
-                                      isDense: true,
-                                    ),
-                                    style: TextStyle(
-                                      fontSize: 13.5,
-                                      color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
-                                    ),
-                                    onChanged: (val) {
-                                      setState(() => _searchQuery = val);
-                                    },
-                                  ),
-                                ),
-                                if (_searchQuery.isNotEmpty)
-                                  GestureDetector(
-                                    onTap: () {
-                                      _searchController.clear();
-                                      setState(() => _searchQuery = '');
-                                    },
-                                    child: Icon(
-                                      Icons.cancel_rounded,
-                                      size: 18,
-                                      color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8),
-                                    ),
-                                  ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Material(
-                          color: isDark ? AppTheme.darkSurface : Colors.white,
-                          borderRadius: BorderRadius.circular(14),
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(14),
-                            onTap: _pickFileFromDevice,
-                            child: Container(
-                              width: 46,
-                              height: 46,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(14),
-                                border: Border.all(
-                                  color: isDark ? AppTheme.darkBorder : const Color(0xFFE2E8F0),
-                                  width: 1,
-                                ),
-                              ),
-                              child: Tooltip(
-                                message: 'Impor Berkas dari HP',
-                                child: Icon(
-                                  Icons.folder_open_rounded,
-                                  size: 21,
-                                  color: isDark ? AppTheme.darkTextPrimary : AppTheme.primaryBlue,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-
-                  // Category Filter Pills (Zero Layout Shifts)
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Row(
-                      children: [
-                        _buildSegmentedTab('all', 'Semua', Icons.grid_view_rounded),
-                        _buildSegmentedTab(
-                          'device',
-                          'Berkas HP (${_deviceDocs.length})',
-                          Icons.phone_android_rounded,
-                          color: const Color(0xFF0284C7),
-                        ),
-                        _buildSegmentedTab('word', 'Word', Icons.article_rounded, color: AppTheme.docBlue),
-                        _buildSegmentedTab('sheet', 'Excel', Icons.table_chart_rounded, color: AppTheme.sheetGreen),
-                        _buildSegmentedTab('presentation', 'PPT', Icons.slideshow_rounded, color: AppTheme.pptOrange),
-                        _buildSegmentedTab('pdf', 'PDF', Icons.picture_as_pdf_rounded, color: AppTheme.pdfRed),
-                        _buildSegmentedTab('starred', 'Berbintang', Icons.star_rounded, color: Colors.amber),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-
-                  // Storage Permission Warning Banner (if not granted)
-                  if (!_hasStoragePermission)
-                    Container(
-                      margin: const EdgeInsets.fromLTRB(16, 2, 16, 10),
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                      decoration: BoxDecoration(
-                        color: isDark ? const Color(0xFF1E293B) : const Color(0xFFEFF6FF),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppTheme.primaryBlue.withValues(alpha: 0.3)),
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(7),
-                            decoration: BoxDecoration(
-                              color: AppTheme.primaryBlue.withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: const Icon(Icons.folder_shared_rounded, color: AppTheme.primaryBlue, size: 20),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Izin Akses Berkas HP Belum Aktif',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 12.5,
-                                    color: isDark ? Colors.white : const Color(0xFF0F172A),
-                                  ),
-                                ),
-                                const SizedBox(height: 1),
-                                Text(
-                                  'Beri izin agar dokumen Word, Excel, PPT, & PDF di HP terbaca otomatis.',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          FilledButton(
-                            style: FilledButton.styleFrom(
-                              backgroundColor: AppTheme.primaryBlue,
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                              visualDensity: VisualDensity.compact,
-                            ),
-                            onPressed: _requestPermission,
-                            child: const Text('Beri Izin', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold)),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                  // Section Header: Documents Counter & Status
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 4),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Row(
-                            children: [
-                              Flexible(
-                                child: Text(
-                                  _selectedFilter == 'device' ? 'Berkas di Memori HP' : 'Dokumen Tersimpan',
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    fontSize: 13.5,
-                                    fontWeight: FontWeight.w700,
-                                    letterSpacing: -0.2,
-                                    color: isDark ? const Color(0xFFE2E8F0) : const Color(0xFF1E293B),
-                                  ),
-                                ),
-                              ),
-                              if (_isScanningDevice) ...[
-                                const SizedBox(width: 8),
-                                const SizedBox(
-                                  width: 12,
-                                  height: 12,
-                                  child: CircularProgressIndicator(strokeWidth: 1.5),
-                                ),
-                              ],
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: isDark ? AppTheme.darkSurface : const Color(0xFFF1F5F9),
-                            borderRadius: BorderRadius.circular(6),
-                            border: Border.all(
-                              color: isDark ? AppTheme.darkBorder : const Color(0xFFE2E8F0),
-                              width: 0.8,
-                            ),
-                          ),
-                          child: Text(
-                            '${docs.length} berkas',
-                            style: TextStyle(
-                              fontSize: 10.5,
-                              fontWeight: FontWeight.w600,
-                              color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-
-                  // Documents List
-                  Expanded(
-                    child: docs.isEmpty
-                        ? _buildEmptyState(isDark)
-                        : ListView.separated(
-                            padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
-                            itemCount: docs.length,
-                            separatorBuilder: (_, __) => const SizedBox(height: 8),
-                            itemBuilder: (context, index) {
-                              final doc = docs[index];
-                              return _buildDocCard(doc, isDark);
-                            },
-                          ),
                   ),
                 ],
               ),
+              backgroundColor: const Color(0xFF1E293B),
+              behavior: SnackBarBehavior.floating,
+              duration: const Duration(seconds: 2),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+                side: const BorderSide(color: Color(0xFF334155)),
+              ),
+              margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
             ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).removeCurrentSnackBar();
+          SystemNavigator.pop();
+        }
+      },
+      child: Stack(
+        children: [
+          Scaffold(
+            backgroundColor: isDark ? AppTheme.darkBg : AppTheme.lightBg,
+            appBar: AppBar(
+              backgroundColor: isDark ? AppTheme.darkBg : AppTheme.lightBg,
+              elevation: 0,
+              scrolledUnderElevation: 0,
+              titleSpacing: 16,
+              title: Row(
+                children: [
+                  // Clean Logo without box background
+                  Image.asset(
+                    'assets/images/app_logo.png',
+                    width: 34,
+                    height: 34,
+                    fit: BoxFit.contain,
+                  ),
+                  const SizedBox(width: 10),
+                  // Title
+                  Flexible(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: RichText(
+                        text: TextSpan(
+                          children: [
+                            TextSpan(
+                              text: 'Hardcorez',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w900,
+                                fontSize: 18,
+                                letterSpacing: -0.4,
+                                color: isDark
+                                    ? Colors.white
+                                    : const Color(0xFF0F172A),
+                              ),
+                            ),
+                            const TextSpan(
+                              text: 'Forge',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w900,
+                                fontSize: 18,
+                                letterSpacing: -0.4,
+                                color: AppTheme.brandCrimson,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                // Theme Toggle Button (Dark / Light Mode)
+                Padding(
+                  padding: const EdgeInsets.only(right: 6),
+                  child: Material(
+                    color: isDark ? AppTheme.darkSurface : Colors.white,
+                    borderRadius: BorderRadius.circular(10),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(10),
+                      onTap: () {
+                        final current = HardcorezForgeApp.themeNotifier.value;
+                        HardcorezForgeApp.themeNotifier.value =
+                            current == ThemeMode.dark
+                            ? ThemeMode.light
+                            : ThemeMode.dark;
+                      },
+                      child: Container(
+                        width: 38,
+                        height: 38,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: isDark
+                                ? AppTheme.darkBorder
+                                : AppTheme.lightBorder,
+                            width: 1,
+                          ),
+                        ),
+                        child: Icon(
+                          isDark
+                              ? Icons.light_mode_rounded
+                              : Icons.dark_mode_outlined,
+                          size: 19,
+                          color: isDark
+                              ? Colors.amber
+                              : const Color(0xFF475569),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                // Re-Scan Device Files Button
+                Padding(
+                  padding: const EdgeInsets.only(right: 6),
+                  child: Material(
+                    color: isDark ? AppTheme.darkSurface : Colors.white,
+                    borderRadius: BorderRadius.circular(10),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(10),
+                      onTap: () => _checkPermissionAndScan(silent: false),
+                      child: Container(
+                        width: 38,
+                        height: 38,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: isDark
+                                ? AppTheme.darkBorder
+                                : AppTheme.lightBorder,
+                            width: 1,
+                          ),
+                        ),
+                        child: _isScanningDevice
+                            ? const Padding(
+                                padding: EdgeInsets.all(10),
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : Icon(
+                                Icons.refresh_rounded,
+                                size: 20,
+                                color: isDark
+                                    ? AppTheme.darkTextPrimary
+                                    : AppTheme.lightTextPrimary,
+                              ),
+                      ),
+                    ),
+                  ),
+                ),
+                // Info Button
+                Padding(
+                  padding: const EdgeInsets.only(right: 16),
+                  child: Material(
+                    color: isDark ? AppTheme.darkSurface : Colors.white,
+                    borderRadius: BorderRadius.circular(10),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(10),
+                      onTap: () {
+                        showAboutDialog(
+                          context: context,
+                          applicationName: 'HardcorezForge',
+                          applicationVersion: '1.0.2',
+                          applicationIcon: Image.asset(
+                            'assets/images/app_logo.png',
+                            width: 44,
+                            height: 44,
+                            fit: BoxFit.contain,
+                          ),
+                          children: [
+                            const Text(
+                              'All-in-One Mobile Office Suite mandiri: Word, Excel Spreadsheet dengan Formula Engine, PowerPoint Slide Deck, PDF Document Reader, dan Vector Signature/Stamp Engine tanpa iklan.',
+                              style: TextStyle(fontSize: 13, height: 1.5),
+                            ),
+                            const SizedBox(height: 16),
+                            FilledButton.icon(
+                              onPressed: () {
+                                Navigator.pop(context);
+                                setState(() => _showGuideOverlay = true);
+                              },
+                              icon: const Icon(
+                                Icons.help_outline_rounded,
+                                size: 18,
+                              ),
+                              label: const Text('Buka Panduan Aplikasi'),
+                              style: FilledButton.styleFrom(
+                                backgroundColor: AppTheme.brandCrimson,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                              ),
+                            ),
+                          ],
+                        );
+                      },
+                      child: Container(
+                        width: 38,
+                        height: 38,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: isDark
+                                ? AppTheme.darkBorder
+                                : AppTheme.lightBorder,
+                            width: 1,
+                          ),
+                        ),
+                        child: Icon(
+                          Icons.info_outline_rounded,
+                          size: 19,
+                          color: isDark
+                              ? AppTheme.darkTextSecondary
+                              : AppTheme.lightTextSecondary,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            body: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : RefreshIndicator(
+                    onRefresh: () async {
+                      await _repo.init();
+                      await _scanDeviceFiles();
+                    },
+                    child: Column(
+                      children: [
+                        // Quick Tools 4-Module Card Strip
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 6, 16, 10),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: _buildQuickModuleCard(
+                                  icon: Icons.article_rounded,
+                                  color: AppTheme.docBlue,
+                                  bgColor: isDark
+                                      ? const Color(0xFF131D33)
+                                      : AppTheme.docBlueLight,
+                                  label: 'Word',
+                                  tag: '.docx',
+                                  onTap: () => _createNewDocument(DocType.word),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: _buildQuickModuleCard(
+                                  icon: Icons.table_chart_rounded,
+                                  color: AppTheme.sheetGreen,
+                                  bgColor: isDark
+                                      ? const Color(0xFF0D251D)
+                                      : AppTheme.sheetGreenLight,
+                                  label: 'Excel',
+                                  tag: '.xlsx',
+                                  onTap: () =>
+                                      _createNewDocument(DocType.sheet),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: _buildQuickModuleCard(
+                                  icon: Icons.slideshow_rounded,
+                                  color: AppTheme.pptOrange,
+                                  bgColor: isDark
+                                      ? const Color(0xFF281810)
+                                      : AppTheme.pptOrangeLight,
+                                  label: 'PPT',
+                                  tag: '.pptx',
+                                  onTap: () =>
+                                      _createNewDocument(DocType.presentation),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: _buildQuickModuleCard(
+                                  icon: Icons.draw_rounded,
+                                  color: const Color(0xFF7C3AED),
+                                  bgColor: isDark
+                                      ? const Color(0xFF1F1433)
+                                      : const Color(0xFFF5F3FF),
+                                  label: 'Tanda Tangan',
+                                  tag: 'PDF Sign',
+                                  onTap: _pickPdfToSign,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        // Search Bar Capsule & Import Button
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Container(
+                                  height: 46,
+                                  decoration: BoxDecoration(
+                                    color: isDark
+                                        ? const Color(0xFF111726)
+                                        : const Color(0xFFF1F5F9),
+                                    borderRadius: BorderRadius.circular(14),
+                                    border: Border.all(
+                                      color: isDark
+                                          ? AppTheme.darkBorder
+                                          : const Color(0xFFE2E8F0),
+                                      width: 1,
+                                    ),
+                                  ),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 14,
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.search_rounded,
+                                        size: 20,
+                                        color: isDark
+                                            ? AppTheme.darkTextSecondary
+                                            : AppTheme.lightTextSecondary,
+                                      ),
+                                      const SizedBox(width: 10),
+                                      Expanded(
+                                        child: TextField(
+                                          controller: _searchController,
+                                          decoration: InputDecoration(
+                                            hintText:
+                                                'Cari berkas dokumen, rumus, atau tipe',
+                                            hintStyle: TextStyle(
+                                              fontSize: 13,
+                                              color: isDark
+                                                  ? const Color(0xFF64748B)
+                                                  : const Color(0xFF94A3B8),
+                                            ),
+                                            border: InputBorder.none,
+                                            isDense: true,
+                                          ),
+                                          style: TextStyle(
+                                            fontSize: 13.5,
+                                            color: isDark
+                                                ? AppTheme.darkTextPrimary
+                                                : AppTheme.lightTextPrimary,
+                                          ),
+                                          onChanged: (val) {
+                                            setState(() => _searchQuery = val);
+                                          },
+                                        ),
+                                      ),
+                                      if (_searchQuery.isNotEmpty)
+                                        GestureDetector(
+                                          onTap: () {
+                                            _searchController.clear();
+                                            setState(() => _searchQuery = '');
+                                          },
+                                          child: Icon(
+                                            Icons.cancel_rounded,
+                                            size: 18,
+                                            color: isDark
+                                                ? const Color(0xFF64748B)
+                                                : const Color(0xFF94A3B8),
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Material(
+                                color: isDark
+                                    ? AppTheme.darkSurface
+                                    : Colors.white,
+                                borderRadius: BorderRadius.circular(14),
+                                child: InkWell(
+                                  borderRadius: BorderRadius.circular(14),
+                                  onTap: _pickFileFromDevice,
+                                  child: Container(
+                                    width: 46,
+                                    height: 46,
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(14),
+                                      border: Border.all(
+                                        color: isDark
+                                            ? AppTheme.darkBorder
+                                            : const Color(0xFFE2E8F0),
+                                        width: 1,
+                                      ),
+                                    ),
+                                    child: Tooltip(
+                                      message: 'Impor Berkas dari HP',
+                                      child: Icon(
+                                        Icons.folder_open_rounded,
+                                        size: 21,
+                                        color: isDark
+                                            ? AppTheme.darkTextPrimary
+                                            : AppTheme.primaryBlue,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+
+                        // Category Filter Pills (Zero Layout Shifts)
+                        SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: Row(
+                            children: [
+                              _buildSegmentedTab(
+                                'all',
+                                'Semua',
+                                Icons.grid_view_rounded,
+                              ),
+                              _buildSegmentedTab(
+                                'device',
+                                'Berkas HP (${_deviceDocs.length})',
+                                Icons.phone_android_rounded,
+                                color: const Color(0xFF0284C7),
+                              ),
+                              _buildSegmentedTab(
+                                'word',
+                                'Word',
+                                Icons.article_rounded,
+                                color: AppTheme.docBlue,
+                              ),
+                              _buildSegmentedTab(
+                                'sheet',
+                                'Excel',
+                                Icons.table_chart_rounded,
+                                color: AppTheme.sheetGreen,
+                              ),
+                              _buildSegmentedTab(
+                                'presentation',
+                                'PPT',
+                                Icons.slideshow_rounded,
+                                color: AppTheme.pptOrange,
+                              ),
+                              _buildSegmentedTab(
+                                'pdf',
+                                'PDF',
+                                Icons.picture_as_pdf_rounded,
+                                color: AppTheme.pdfRed,
+                              ),
+                              _buildSegmentedTab(
+                                'starred',
+                                'Berbintang',
+                                Icons.star_rounded,
+                                color: Colors.amber,
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+
+                        // Storage Permission Warning Banner (if not granted)
+                        if (!_hasStoragePermission)
+                          Container(
+                            margin: const EdgeInsets.fromLTRB(16, 2, 16, 10),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 10,
+                            ),
+                            decoration: BoxDecoration(
+                              color: isDark
+                                  ? const Color(0xFF1E293B)
+                                  : const Color(0xFFEFF6FF),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: AppTheme.primaryBlue.withValues(
+                                  alpha: 0.3,
+                                ),
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(7),
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.primaryBlue.withValues(
+                                      alpha: 0.15,
+                                    ),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Icon(
+                                    Icons.folder_shared_rounded,
+                                    color: AppTheme.primaryBlue,
+                                    size: 20,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Izin Akses Berkas HP Belum Aktif',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 12.5,
+                                          color: isDark
+                                              ? Colors.white
+                                              : const Color(0xFF0F172A),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 1),
+                                      Text(
+                                        'Beri izin agar dokumen Word, Excel, PPT, & PDF di HP terbaca otomatis.',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: isDark
+                                              ? AppTheme.darkTextSecondary
+                                              : AppTheme.lightTextSecondary,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                FilledButton(
+                                  style: FilledButton.styleFrom(
+                                    backgroundColor: AppTheme.primaryBlue,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 6,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    visualDensity: VisualDensity.compact,
+                                  ),
+                                  onPressed: _requestPermission,
+                                  child: const Text(
+                                    'Beri Izin',
+                                    style: TextStyle(
+                                      fontSize: 11.5,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+
+                        // Section Header: Documents Counter & Status
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 18,
+                            vertical: 4,
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: Row(
+                                  children: [
+                                    Flexible(
+                                      child: Text(
+                                        _selectedFilter == 'device'
+                                            ? 'Berkas di Memori HP'
+                                            : 'Dokumen Tersimpan',
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          fontSize: 13.5,
+                                          fontWeight: FontWeight.w700,
+                                          letterSpacing: -0.2,
+                                          color: isDark
+                                              ? const Color(0xFFE2E8F0)
+                                              : const Color(0xFF1E293B),
+                                        ),
+                                      ),
+                                    ),
+                                    if (_isScanningDevice) ...[
+                                      const SizedBox(width: 8),
+                                      const SizedBox(
+                                        width: 12,
+                                        height: 12,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 1.5,
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 7,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: isDark
+                                      ? AppTheme.darkSurface
+                                      : const Color(0xFFF1F5F9),
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(
+                                    color: isDark
+                                        ? AppTheme.darkBorder
+                                        : const Color(0xFFE2E8F0),
+                                    width: 0.8,
+                                  ),
+                                ),
+                                child: Text(
+                                  '${docs.length} berkas',
+                                  style: TextStyle(
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.w600,
+                                    color: isDark
+                                        ? AppTheme.darkTextSecondary
+                                        : AppTheme.lightTextSecondary,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+
+                        // Documents List
+                        Expanded(
+                          child: docs.isEmpty
+                              ? _buildEmptyState(isDark)
+                              : ListView.separated(
+                                  padding: const EdgeInsets.fromLTRB(
+                                    16,
+                                    4,
+                                    16,
+                                    24,
+                                  ),
+                                  itemCount: docs.length,
+                                  separatorBuilder: (_, __) =>
+                                      const SizedBox(height: 8),
+                                  itemBuilder: (context, index) {
+                                    final doc = docs[index];
+                                    return _buildDocCard(doc, isDark);
+                                  },
+                                ),
+                        ),
+                      ],
+                    ),
+                  ),
+          ),
+          if (_showGuideOverlay)
+            AppGuideOverlay(
+              onDismiss: () {
+                setState(() => _showGuideOverlay = false);
+              },
+            ),
+        ],
+      ),
     );
   }
 
@@ -1035,7 +1323,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 decoration: BoxDecoration(
                   color: bgColor,
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: color.withValues(alpha: 0.2), width: 1),
+                  border: Border.all(
+                    color: color.withValues(alpha: 0.2),
+                    width: 1,
+                  ),
                 ),
                 child: Icon(icon, color: color, size: 20),
               ),
@@ -1058,7 +1349,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 style: TextStyle(
                   fontSize: 9.5,
                   fontWeight: FontWeight.w600,
-                  color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+                  color: isDark
+                      ? AppTheme.darkTextSecondary
+                      : AppTheme.lightTextSecondary,
                 ),
               ),
             ],
@@ -1068,7 +1361,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
   }
 
-  Widget _buildSegmentedTab(String key, String label, IconData icon, {Color? color}) {
+  Widget _buildSegmentedTab(
+    String key,
+    String label,
+    IconData icon, {
+    Color? color,
+  }) {
     final isSelected = _selectedFilter == key;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final activeColor = color ?? AppTheme.primaryBlue;
@@ -1102,7 +1400,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   size: 15,
                   color: isSelected
                       ? Colors.white
-                      : (isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary),
+                      : (isDark
+                            ? AppTheme.darkTextSecondary
+                            : AppTheme.lightTextSecondary),
                 ),
                 const SizedBox(width: 6),
                 Text(
@@ -1112,7 +1412,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                     color: isSelected
                         ? Colors.white
-                        : (isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary),
+                        : (isDark
+                              ? AppTheme.darkTextPrimary
+                              : AppTheme.lightTextPrimary),
                   ),
                 ),
               ],
@@ -1158,9 +1460,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                  color: isDark ? docColor.withValues(alpha: 0.16) : docLightColor,
+                  color: isDark
+                      ? docColor.withValues(alpha: 0.16)
+                      : docLightColor,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: docColor.withValues(alpha: 0.22), width: 1),
+                  border: Border.all(
+                    color: docColor.withValues(alpha: 0.22),
+                    width: 1,
+                  ),
                 ),
                 child: Icon(docIcon, color: docColor, size: 22),
               ),
@@ -1179,7 +1486,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         fontWeight: FontWeight.w700,
                         fontSize: 14,
                         letterSpacing: -0.2,
-                        color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
+                        color: isDark
+                            ? AppTheme.darkTextPrimary
+                            : AppTheme.lightTextPrimary,
                       ),
                     ),
                     const SizedBox(height: 5),
@@ -1189,15 +1498,23 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       runSpacing: 2,
                       children: [
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 5,
+                            vertical: 1.5,
+                          ),
                           decoration: BoxDecoration(
                             color: docColor.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
-                            isDeviceFile && doc.filePath != null && doc.filePath!.contains('.')
+                            isDeviceFile &&
+                                    doc.filePath != null &&
+                                    doc.filePath!.contains('.')
                                 ? doc.filePath!.split('.').last.toUpperCase()
-                                : doc.type.extension.toUpperCase().replaceAll('.', ''),
+                                : doc.type.extension.toUpperCase().replaceAll(
+                                    '.',
+                                    '',
+                                  ),
                             style: TextStyle(
                               fontSize: 9.5,
                               fontWeight: FontWeight.w800,
@@ -1208,9 +1525,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         ),
                         if (isDeviceFile)
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1.5),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 4,
+                              vertical: 1.5,
+                            ),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF0284C7).withValues(alpha: 0.1),
+                              color: const Color(
+                                0xFF0284C7,
+                              ).withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: const Text(
@@ -1226,14 +1548,18 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           '•',
                           style: TextStyle(
                             fontSize: 10,
-                            color: isDark ? const Color(0xFF475569) : const Color(0xFF94A3B8),
+                            color: isDark
+                                ? const Color(0xFF475569)
+                                : const Color(0xFF94A3B8),
                           ),
                         ),
                         Text(
                           _formatDate(doc.updatedAt),
                           style: TextStyle(
                             fontSize: 11,
-                            color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+                            color: isDark
+                                ? AppTheme.darkTextSecondary
+                                : AppTheme.lightTextSecondary,
                           ),
                         ),
                         if (doc.sizeInBytes > 0) ...[
@@ -1241,14 +1567,18 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                             '•',
                             style: TextStyle(
                               fontSize: 10,
-                              color: isDark ? const Color(0xFF475569) : const Color(0xFF94A3B8),
+                              color: isDark
+                                  ? const Color(0xFF475569)
+                                  : const Color(0xFF94A3B8),
                             ),
                           ),
                           Text(
                             _formatSize(doc.sizeInBytes),
                             style: TextStyle(
                               fontSize: 11,
-                              color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+                              color: isDark
+                                  ? AppTheme.darkTextSecondary
+                                  : AppTheme.lightTextSecondary,
                             ),
                           ),
                         ],
@@ -1261,8 +1591,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               // Star Button
               IconButton(
                 icon: Icon(
-                  doc.isStarred ? Icons.star_rounded : Icons.star_outline_rounded,
-                  color: doc.isStarred ? Colors.amber : (isDark ? const Color(0xFF475569) : const Color(0xFF94A3B8)),
+                  doc.isStarred
+                      ? Icons.star_rounded
+                      : Icons.star_outline_rounded,
+                  color: doc.isStarred
+                      ? Colors.amber
+                      : (isDark
+                            ? const Color(0xFF475569)
+                            : const Color(0xFF94A3B8)),
                   size: 22,
                 ),
                 splashRadius: 20,
@@ -1278,9 +1614,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 icon: Icon(
                   Icons.more_vert_rounded,
                   size: 19,
-                  color: isDark ? const Color(0xFF475569) : const Color(0xFF94A3B8),
+                  color: isDark
+                      ? const Color(0xFF475569)
+                      : const Color(0xFF94A3B8),
                 ),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 color: isDark ? AppTheme.darkCard : Colors.white,
                 onSelected: (val) async {
                   if (val == 'open') {
@@ -1300,9 +1640,16 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     value: 'open',
                     child: Row(
                       children: [
-                        Icon(Icons.edit_outlined, size: 18, color: isDark ? Colors.white : Colors.black87),
+                        Icon(
+                          Icons.edit_outlined,
+                          size: 18,
+                          color: isDark ? Colors.white : Colors.black87,
+                        ),
                         const SizedBox(width: 10),
-                        const Text('Buka & Edit', style: TextStyle(fontSize: 13)),
+                        const Text(
+                          'Buka & Edit',
+                          style: TextStyle(fontSize: 13),
+                        ),
                       ],
                     ),
                   ),
@@ -1310,9 +1657,16 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     value: 'rename',
                     child: Row(
                       children: [
-                        Icon(Icons.drive_file_rename_outline_rounded, size: 18, color: isDark ? Colors.white : Colors.black87),
+                        Icon(
+                          Icons.drive_file_rename_outline_rounded,
+                          size: 18,
+                          color: isDark ? Colors.white : Colors.black87,
+                        ),
                         const SizedBox(width: 10),
-                        const Text('Ganti Nama', style: TextStyle(fontSize: 13)),
+                        const Text(
+                          'Ganti Nama',
+                          style: TextStyle(fontSize: 13),
+                        ),
                       ],
                     ),
                   ),
@@ -1320,7 +1674,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     value: 'duplicate',
                     child: Row(
                       children: [
-                        Icon(Icons.copy_rounded, size: 18, color: isDark ? Colors.white : Colors.black87),
+                        Icon(
+                          Icons.copy_rounded,
+                          size: 18,
+                          color: isDark ? Colors.white : Colors.black87,
+                        ),
                         const SizedBox(width: 10),
                         const Text('Duplikat', style: TextStyle(fontSize: 13)),
                       ],
@@ -1330,7 +1688,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     value: 'share',
                     child: Row(
                       children: [
-                        Icon(Icons.share_outlined, size: 18, color: isDark ? Colors.white : Colors.black87),
+                        Icon(
+                          Icons.share_outlined,
+                          size: 18,
+                          color: isDark ? Colors.white : Colors.black87,
+                        ),
                         const SizedBox(width: 10),
                         const Text('Bagikan', style: TextStyle(fontSize: 13)),
                       ],
@@ -1340,9 +1702,19 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     value: 'delete',
                     child: Row(
                       children: [
-                        Icon(Icons.delete_outline_rounded, size: 18, color: Colors.redAccent),
+                        Icon(
+                          Icons.delete_outline_rounded,
+                          size: 18,
+                          color: Colors.redAccent,
+                        ),
                         SizedBox(width: 10),
-                        Text('Hapus', style: TextStyle(color: Colors.redAccent, fontSize: 13)),
+                        Text(
+                          'Hapus',
+                          style: TextStyle(
+                            color: Colors.redAccent,
+                            fontSize: 13,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -1368,7 +1740,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               width: 72,
               height: 72,
               decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF131D33) : const Color(0xFFEFF6FF),
+                color: isDark
+                    ? const Color(0xFF131D33)
+                    : const Color(0xFFEFF6FF),
                 shape: BoxShape.circle,
                 border: Border.all(
                   color: AppTheme.primaryBlue.withValues(alpha: 0.15),
@@ -1376,7 +1750,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 ),
               ),
               child: Icon(
-                needPermission ? Icons.folder_shared_rounded : Icons.folder_open_rounded,
+                needPermission
+                    ? Icons.folder_shared_rounded
+                    : Icons.folder_open_rounded,
                 size: 34,
                 color: AppTheme.primaryBlue,
               ),
@@ -1385,7 +1761,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             Text(
               needPermission
                   ? 'Izin Akses Berkas Diperlukan'
-                  : (_selectedFilter == 'device' ? 'Tidak Ada Berkas HP Ditemukan' : 'Belum Ada Dokumen'),
+                  : (_selectedFilter == 'device'
+                        ? 'Tidak Ada Berkas HP Ditemukan'
+                        : 'Belum Ada Dokumen'),
               style: TextStyle(
                 fontWeight: FontWeight.w800,
                 fontSize: 16,
@@ -1398,11 +1776,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               needPermission
                   ? 'Beri izin akses penyimpanan agar HardcorezForge dapat mendeteksi dan menampilkan semua dokumen Word, Excel, PPT, dan PDF yang ada di memori HP Anda.'
                   : (_selectedFilter == 'device'
-                      ? 'Simpan berkas .docx, .xlsx, atau .pdf di folder Download/Documents HP Anda lalu tekan tombol refresh.'
-                      : 'Mulai buat dokumen baru, spreadsheet formula, atau buka file dari penyimpanan internal Anda.'),
+                        ? 'Simpan berkas .docx, .xlsx, atau .pdf di folder Download/Documents HP Anda lalu tekan tombol refresh.'
+                        : 'Mulai buat dokumen baru, spreadsheet formula, atau buka file dari penyimpanan internal Anda.'),
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+                color: isDark
+                    ? AppTheme.darkTextSecondary
+                    : AppTheme.lightTextSecondary,
                 fontSize: 12.5,
                 height: 1.4,
               ),
@@ -1413,8 +1793,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 onPressed: _requestPermission,
                 style: FilledButton.styleFrom(
                   backgroundColor: AppTheme.primaryBlue,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 12,
+                  ),
                 ),
                 icon: const Icon(Icons.shield_outlined, size: 18),
                 label: const Text(
@@ -1424,19 +1809,32 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               )
             else
               OutlinedButton.icon(
-                onPressed: _selectedFilter == 'device' ? () => _checkPermissionAndScan(silent: false) : () => _createNewDocument(DocType.word),
+                onPressed: _selectedFilter == 'device'
+                    ? () => _checkPermissionAndScan(silent: false)
+                    : () => _createNewDocument(DocType.word),
                 style: OutlinedButton.styleFrom(
-                  side: BorderSide(color: AppTheme.primaryBlue.withValues(alpha: 0.5)),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  side: BorderSide(
+                    color: AppTheme.primaryBlue.withValues(alpha: 0.5),
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 10,
+                  ),
                 ),
                 icon: Icon(
-                  _selectedFilter == 'device' ? Icons.refresh_rounded : Icons.add_rounded,
+                  _selectedFilter == 'device'
+                      ? Icons.refresh_rounded
+                      : Icons.add_rounded,
                   size: 18,
                   color: AppTheme.primaryBlue,
                 ),
                 label: Text(
-                  _selectedFilter == 'device' ? 'Pindai Ulang Berkas' : 'Buat Dokumen Sekarang',
+                  _selectedFilter == 'device'
+                      ? 'Pindai Ulang Berkas'
+                      : 'Buat Dokumen Sekarang',
                   style: const TextStyle(
                     color: AppTheme.primaryBlue,
                     fontWeight: FontWeight.w700,
