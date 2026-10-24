@@ -820,6 +820,11 @@ class _MarkdownReaderScreenState extends State<MarkdownReaderScreen> {
         controller: _editorController,
         maxLines: null,
         expands: true,
+        scrollPhysics: const BouncingScrollPhysics(),
+        spellCheckConfiguration: const SpellCheckConfiguration.disabled(),
+        enableInteractiveSelection: true,
+        autocorrect: false,
+        enableSuggestions: false,
         keyboardType: TextInputType.multiline,
         style: TextStyle(
           fontFamily: 'monospace',

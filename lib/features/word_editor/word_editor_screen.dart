@@ -22,6 +22,7 @@ class _WordEditorScreenState extends State<WordEditorScreen> {
 
   bool _isSaving = false;
   bool _isDirty = false;
+  bool _isReadOnly = false;
   double _fontSize = 15.0;
   TextAlign _alignment = TextAlign.left;
   bool _isBold = false;
@@ -29,6 +30,7 @@ class _WordEditorScreenState extends State<WordEditorScreen> {
 
   int _wordCount = 0;
   int _charCount = 0;
+  String _lastText = '';
   final ValueNotifier<String> _countNotifier = ValueNotifier<String>(
     '0 kata • 0 karakter',
   );
@@ -55,19 +57,40 @@ class _WordEditorScreenState extends State<WordEditorScreen> {
     _calculateInitialCounts();
   }
 
+  int _countWords(String s) {
+    int count = 0;
+    bool inWord = false;
+    for (int i = 0; i < s.length; i++) {
+      final code = s.codeUnitAt(i);
+      final isSpace = code <= 32 || code == 160;
+      if (!isSpace) {
+        if (!inWord) {
+          count++;
+          inWord = true;
+        }
+      } else {
+        inWord = false;
+      }
+    }
+    return count;
+  }
+
   void _calculateInitialCounts() {
     final text = _bodyController.text.trim();
+    _lastText = _bodyController.text;
     _charCount = text.length;
-    _wordCount = text.isEmpty ? 0 : text.split(RegExp(r'\s+')).length;
+    _wordCount = _countWords(text);
     _countNotifier.value = '$_wordCount kata • $_charCount karakter';
     _isDirty = false;
   }
 
   void _updateCounts() {
+    final text = _bodyController.text;
+    if (text == _lastText) return;
+    _lastText = text;
     _isDirty = true;
-    final text = _bodyController.text.trim();
     _charCount = text.length;
-    _wordCount = text.isEmpty ? 0 : text.split(RegExp(r'\s+')).length;
+    _wordCount = _countWords(text);
     _countNotifier.value = '$_wordCount kata • $_charCount karakter';
   }
 
@@ -412,12 +435,18 @@ class _WordEditorScreenState extends State<WordEditorScreen> {
             IconButton(
               visualDensity: VisualDensity.compact,
               icon: Icon(
-                Icons.edit_note_rounded,
+                _isReadOnly
+                    ? Icons.edit_note_rounded
+                    : Icons.visibility_outlined,
                 size: 22,
-                color: isDark ? Colors.white70 : const Color(0xFF475569),
+                color: _isReadOnly
+                    ? AppTheme.docBlue
+                    : (isDark ? Colors.white70 : const Color(0xFF475569)),
               ),
-              tooltip: 'Ganti Nama Dokumen',
-              onPressed: _promptRename,
+              tooltip: _isReadOnly
+                  ? 'Beralih ke Mode Sunting'
+                  : 'Beralih ke Mode Baca',
+              onPressed: () => setState(() => _isReadOnly = !_isReadOnly),
             ),
             IconButton(
               visualDensity: VisualDensity.compact,
@@ -521,15 +550,21 @@ class _WordEditorScreenState extends State<WordEditorScreen> {
                       vertical: 2,
                     ),
                     decoration: BoxDecoration(
-                      color: AppTheme.docBlue.withValues(alpha: 0.15),
+                      color:
+                          (_isReadOnly
+                                  ? const Color(0xFF059669)
+                                  : AppTheme.docBlue)
+                              .withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(4),
                     ),
-                    child: const Text(
-                      'WORD',
+                    child: Text(
+                      _isReadOnly ? 'MODE BACA' : 'WORD',
                       style: TextStyle(
                         fontSize: 9.5,
                         fontWeight: FontWeight.w800,
-                        color: AppTheme.docBlue,
+                        color: _isReadOnly
+                            ? const Color(0xFF059669)
+                            : AppTheme.docBlue,
                         letterSpacing: 0.5,
                       ),
                     ),
@@ -599,92 +634,100 @@ class _WordEditorScreenState extends State<WordEditorScreen> {
               ),
             ),
             // Formatting Toolbar (WPS Style)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(
-                color: isDark ? AppTheme.darkSurface : Colors.white,
-                border: Border(
-                  bottom: BorderSide(
-                    color: isDark ? AppTheme.darkBorder : AppTheme.lightBorder,
+            if (!_isReadOnly)
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: isDark ? AppTheme.darkSurface : Colors.white,
+                  border: Border(
+                    bottom: BorderSide(
+                      color: isDark
+                          ? AppTheme.darkBorder
+                          : AppTheme.lightBorder,
+                    ),
+                  ),
+                ),
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      // Bold Toggle
+                      _buildToolbarIcon(
+                        icon: Icons.format_bold,
+                        isActive: _isBold,
+                        onTap: () => setState(() => _isBold = !_isBold),
+                      ),
+                      // Italic Toggle
+                      _buildToolbarIcon(
+                        icon: Icons.format_italic,
+                        isActive: _isItalic,
+                        onTap: () => setState(() => _isItalic = !_isItalic),
+                      ),
+                      const VerticalDivider(width: 16),
+                      // Alignment
+                      _buildToolbarIcon(
+                        icon: Icons.format_align_left,
+                        isActive: _alignment == TextAlign.left,
+                        onTap: () =>
+                            setState(() => _alignment = TextAlign.left),
+                      ),
+                      _buildToolbarIcon(
+                        icon: Icons.format_align_center,
+                        isActive: _alignment == TextAlign.center,
+                        onTap: () =>
+                            setState(() => _alignment = TextAlign.center),
+                      ),
+                      _buildToolbarIcon(
+                        icon: Icons.format_align_right,
+                        isActive: _alignment == TextAlign.right,
+                        onTap: () =>
+                            setState(() => _alignment = TextAlign.right),
+                      ),
+                      const VerticalDivider(width: 16),
+                      // Lists
+                      _buildToolbarIcon(
+                        icon: Icons.format_list_bulleted,
+                        isActive: false,
+                        onTap: _insertBullet,
+                      ),
+                      _buildToolbarIcon(
+                        icon: Icons.format_list_numbered,
+                        isActive: false,
+                        onTap: _insertNumbered,
+                      ),
+                      const VerticalDivider(width: 16),
+                      // Font Size
+                      _buildToolbarIcon(
+                        icon: Icons.remove,
+                        isActive: false,
+                        onTap: () {
+                          if (_fontSize > 11) setState(() => _fontSize -= 1);
+                        },
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 6),
+                        child: Text(
+                          '${_fontSize.toInt()} pt',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                      _buildToolbarIcon(
+                        icon: Icons.add,
+                        isActive: false,
+                        onTap: () {
+                          if (_fontSize < 32) setState(() => _fontSize += 1);
+                        },
+                      ),
+                    ],
                   ),
                 ),
               ),
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    // Bold Toggle
-                    _buildToolbarIcon(
-                      icon: Icons.format_bold,
-                      isActive: _isBold,
-                      onTap: () => setState(() => _isBold = !_isBold),
-                    ),
-                    // Italic Toggle
-                    _buildToolbarIcon(
-                      icon: Icons.format_italic,
-                      isActive: _isItalic,
-                      onTap: () => setState(() => _isItalic = !_isItalic),
-                    ),
-                    const VerticalDivider(width: 16),
-                    // Alignment
-                    _buildToolbarIcon(
-                      icon: Icons.format_align_left,
-                      isActive: _alignment == TextAlign.left,
-                      onTap: () => setState(() => _alignment = TextAlign.left),
-                    ),
-                    _buildToolbarIcon(
-                      icon: Icons.format_align_center,
-                      isActive: _alignment == TextAlign.center,
-                      onTap: () =>
-                          setState(() => _alignment = TextAlign.center),
-                    ),
-                    _buildToolbarIcon(
-                      icon: Icons.format_align_right,
-                      isActive: _alignment == TextAlign.right,
-                      onTap: () => setState(() => _alignment = TextAlign.right),
-                    ),
-                    const VerticalDivider(width: 16),
-                    // Lists
-                    _buildToolbarIcon(
-                      icon: Icons.format_list_bulleted,
-                      isActive: false,
-                      onTap: _insertBullet,
-                    ),
-                    _buildToolbarIcon(
-                      icon: Icons.format_list_numbered,
-                      isActive: false,
-                      onTap: _insertNumbered,
-                    ),
-                    const VerticalDivider(width: 16),
-                    // Font Size
-                    _buildToolbarIcon(
-                      icon: Icons.remove,
-                      isActive: false,
-                      onTap: () {
-                        if (_fontSize > 11) setState(() => _fontSize -= 1);
-                      },
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 6),
-                      child: Text(
-                        '${_fontSize.toInt()} pt',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13,
-                        ),
-                      ),
-                    ),
-                    _buildToolbarIcon(
-                      icon: Icons.add,
-                      isActive: false,
-                      onTap: () {
-                        if (_fontSize < 32) setState(() => _fontSize += 1);
-                      },
-                    ),
-                  ],
-                ),
-              ),
-            ),
 
             // Word Count Indicator Pill
             Container(
@@ -739,31 +782,60 @@ class _WordEditorScreenState extends State<WordEditorScreen> {
                       ],
                     ),
                     padding: const EdgeInsets.all(24),
-                    child: TextField(
-                      controller: _bodyController,
-                      focusNode: _focusNode,
-                      maxLines: null,
-                      expands: true,
-                      textAlign: _alignment,
-                      style: TextStyle(
-                        fontSize: _fontSize,
-                        fontWeight: _isBold
-                            ? FontWeight.bold
-                            : FontWeight.normal,
-                        fontStyle: _isItalic
-                            ? FontStyle.italic
-                            : FontStyle.normal,
-                        height: 1.6,
-                        color: isDark
-                            ? AppTheme.darkTextPrimary
-                            : AppTheme.lightTextPrimary,
-                      ),
-                      decoration: const InputDecoration(
-                        border: InputBorder.none,
-                        hintText: 'Mulai ketik dokumen Anda di sini',
-                        hintStyle: TextStyle(color: Colors.grey),
-                      ),
-                    ),
+                    child: _isReadOnly
+                        ? SingleChildScrollView(
+                            physics: const BouncingScrollPhysics(),
+                            child: SelectableText(
+                              _bodyController.text.isEmpty
+                                  ? 'Dokumen kosong'
+                                  : _bodyController.text,
+                              textAlign: _alignment,
+                              style: TextStyle(
+                                fontSize: _fontSize,
+                                fontWeight: _isBold
+                                    ? FontWeight.bold
+                                    : FontWeight.normal,
+                                fontStyle: _isItalic
+                                    ? FontStyle.italic
+                                    : FontStyle.normal,
+                                height: 1.6,
+                                color: isDark
+                                    ? AppTheme.darkTextPrimary
+                                    : AppTheme.lightTextPrimary,
+                              ),
+                            ),
+                          )
+                        : TextField(
+                            controller: _bodyController,
+                            focusNode: _focusNode,
+                            maxLines: null,
+                            expands: true,
+                            scrollPhysics: const BouncingScrollPhysics(),
+                            spellCheckConfiguration:
+                                const SpellCheckConfiguration.disabled(),
+                            enableInteractiveSelection: true,
+                            autocorrect: false,
+                            enableSuggestions: false,
+                            textAlign: _alignment,
+                            style: TextStyle(
+                              fontSize: _fontSize,
+                              fontWeight: _isBold
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
+                              fontStyle: _isItalic
+                                  ? FontStyle.italic
+                                  : FontStyle.normal,
+                              height: 1.6,
+                              color: isDark
+                                  ? AppTheme.darkTextPrimary
+                                  : AppTheme.lightTextPrimary,
+                            ),
+                            decoration: const InputDecoration(
+                              border: InputBorder.none,
+                              hintText: 'Mulai ketik dokumen Anda di sini',
+                              hintStyle: TextStyle(color: Colors.grey),
+                            ),
+                          ),
                   ),
                 ),
               ),
