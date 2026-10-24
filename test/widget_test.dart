@@ -8,6 +8,8 @@ import 'package:hardcorez_forge/features/signature/signature_screen.dart';
 import 'package:hardcorez_forge/features/splash/splash_screen.dart';
 import 'package:hardcorez_forge/features/home/app_guide_overlay.dart';
 import 'package:hardcorez_forge/features/markdown/markdown_reader_screen.dart';
+import 'package:hardcorez_forge/features/presentation/presentation_screen.dart';
+import 'package:hardcorez_forge/features/pdf_tools/pdf_reader_screen.dart';
 
 void main() {
   group('DocumentModel serialization', () {
@@ -271,6 +273,65 @@ void main() {
       expect(find.text('Salin Nama Berkas'), findsOneWidget);
       expect(find.text(longTitle), findsNWidgets(2)); // in header and sheet
       expect(tester.takeException(), isNull);
+    });
+  });
+
+  group('Harmonized Document Headers Test', () {
+    testWidgets(
+      'PresentationScreen renders POWERPOINT badge and status strip',
+      (tester) async {
+        final doc = DocumentModel(
+          id: 'ppt_test',
+          title: 'Presentasi Strategi 2026',
+          type: DocType.presentation,
+          updatedAt: DateTime.now(),
+          createdAt: DateTime.now(),
+          content: '',
+        );
+
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: AppTheme.lightTheme,
+            home: PresentationScreen(document: doc),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('POWERPOINT'), findsOneWidget);
+        expect(find.text('16:9'), findsOneWidget);
+        expect(find.text('Presentasi Strategi 2026'), findsOneWidget);
+      },
+    );
+
+    testWidgets('PdfReaderScreen renders PDF badge and status strip', (
+      tester,
+    ) async {
+      final doc = DocumentModel(
+        id: 'pdf_test',
+        title: 'Buku Panduan Pengguna.pdf',
+        type: DocType.pdf,
+        updatedAt: DateTime.now(),
+        createdAt: DateTime.now(),
+        content: '',
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.lightTheme,
+          home: PdfReaderScreen(document: doc),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('PDF'), findsOneWidget);
+      expect(find.text('Hal. 1 dari 1'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byType(AppBar),
+          matching: find.text('Buku Panduan Pengguna.pdf'),
+        ),
+        findsOneWidget,
+      );
     });
   });
 }

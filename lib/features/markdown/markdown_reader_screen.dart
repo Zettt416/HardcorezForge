@@ -27,12 +27,16 @@ class MdBlock {
   final String text;
   final String? extra; // Language for codeBlock, task state for taskItem, etc.
   final List<List<String>>? tableRows;
+  List<InlineSpan>? spansDark;
+  List<InlineSpan>? spansLight;
 
-  const MdBlock({
+  MdBlock({
     required this.type,
     required this.text,
     this.extra,
     this.tableRows,
+    this.spansDark,
+    this.spansLight,
   });
 }
 
@@ -88,11 +92,33 @@ class _MarkdownReaderScreenState extends State<MarkdownReaderScreen> {
     _parseMarkdown(rawText);
   }
 
+  static final RegExp _tableSepPattern = RegExp(r'^\|[\s\-:|]+\|$');
+  static final RegExp _quotePattern = RegExp(r'^>\s*');
+  static final RegExp _taskPattern = RegExp(r'^[-*]\s*\[([ xX])\]\s+(.*)$');
+  static final RegExp _bulletMatchPattern = RegExp(r'^[-*+]\s+');
+  static final RegExp _numPattern = RegExp(r'^(\d+)\.\s+(.*)$');
+
+  static int _countWords(String text) {
+    int count = 0;
+    bool inWord = false;
+    for (int i = 0; i < text.length; i++) {
+      if (text.codeUnitAt(i) > 32) {
+        if (!inWord) {
+          count++;
+          inWord = true;
+        }
+      } else {
+        inWord = false;
+      }
+    }
+    return count;
+  }
+
   void _parseMarkdown(String content) {
     final lines = content.split('\n');
     final List<MdBlock> parsed = [];
 
-    int words = 0;
+    final words = _countWords(content);
     bool inCodeBlock = false;
     String codeLang = '';
     final StringBuffer codeBuffer = StringBuffer();
@@ -102,11 +128,6 @@ class _MarkdownReaderScreenState extends State<MarkdownReaderScreen> {
     for (int i = 0; i < lines.length; i++) {
       final line = lines[i];
       final trimmed = line.trim();
-
-      // Count words quickly without heavy regex
-      if (trimmed.isNotEmpty) {
-        words += trimmed.split(RegExp(r'\s+')).length;
-      }
 
       // 1. Code Block Fence (```)
       if (trimmed.startsWith('```')) {
@@ -137,7 +158,7 @@ class _MarkdownReaderScreenState extends State<MarkdownReaderScreen> {
       // 2. Table handling (| col1 | col2 |)
       if (trimmed.startsWith('|') && trimmed.endsWith('|')) {
         // Skip separator row like |---|---|
-        if (RegExp(r'^\|[\s\-:|]+\|$').hasMatch(trimmed)) {
+        if (_tableSepPattern.hasMatch(trimmed)) {
           continue;
         }
         final cols = trimmed
@@ -165,7 +186,7 @@ class _MarkdownReaderScreenState extends State<MarkdownReaderScreen> {
 
       // 3. Horizontal Rule
       if (trimmed == '---' || trimmed == '***' || trimmed == '___') {
-        parsed.add(const MdBlock(type: MdBlockType.divider, text: ''));
+        parsed.add(MdBlock(type: MdBlockType.divider, text: ''));
         continue;
       }
 
@@ -194,15 +215,13 @@ class _MarkdownReaderScreenState extends State<MarkdownReaderScreen> {
 
       // 5. Blockquotes (> quote)
       if (trimmed.startsWith('>')) {
-        final text = trimmed.replaceFirst(RegExp(r'^>\s*'), '');
+        final text = trimmed.replaceFirst(_quotePattern, '');
         parsed.add(MdBlock(type: MdBlockType.blockquote, text: text));
         continue;
       }
 
       // 6. Task List (- [ ] or - [x])
-      final taskMatch = RegExp(
-        r'^[-*]\s*\[([ xX])\]\s+(.*)$',
-      ).firstMatch(trimmed);
+      final taskMatch = _taskPattern.firstMatch(trimmed);
       if (taskMatch != null) {
         final isChecked = taskMatch.group(1)!.toLowerCase() == 'x';
         parsed.add(
@@ -216,14 +235,14 @@ class _MarkdownReaderScreenState extends State<MarkdownReaderScreen> {
       }
 
       // 7. Bullet Lists (- or * or +)
-      if (RegExp(r'^[-*+]\s+').hasMatch(trimmed)) {
-        final text = trimmed.replaceFirst(RegExp(r'^[-*+]\s+'), '');
+      if (_bulletMatchPattern.hasMatch(trimmed)) {
+        final text = trimmed.replaceFirst(_bulletMatchPattern, '');
         parsed.add(MdBlock(type: MdBlockType.bulletItem, text: text));
         continue;
       }
 
       // 8. Numbered Lists (1. )
-      final numMatch = RegExp(r'^(\d+)\.\s+(.*)$').firstMatch(trimmed);
+      final numMatch = _numPattern.firstMatch(trimmed);
       if (numMatch != null) {
         parsed.add(
           MdBlock(
@@ -498,7 +517,9 @@ class _MarkdownReaderScreenState extends State<MarkdownReaderScreen> {
               tooltip: _isEditing ? 'Mode Baca (Preview)' : 'Mode Edit Teks',
               onPressed: () {
                 if (_isEditing) {
-                  _parseMarkdown(_editorController.text);
+                  if (_isDirty) {
+                    _parseMarkdown(_editorController.text);
+                  }
                   setState(() => _isEditing = false);
                 } else {
                   setState(() => _isEditing = true);
@@ -564,10 +585,26 @@ class _MarkdownReaderScreenState extends State<MarkdownReaderScreen> {
                 if (val == 'copy') _copyAllText();
                 if (val == 'share') _shareMarkdown();
                 if (val == 'font_inc') {
-                  if (_fontSize < 24) setState(() => _fontSize += 1);
+                  if (_fontSize < 24) {
+                    setState(() {
+                      _fontSize += 1;
+                      for (final b in _blocks) {
+                        b.spansDark = null;
+                        b.spansLight = null;
+                      }
+                    });
+                  }
                 }
                 if (val == 'font_dec') {
-                  if (_fontSize > 12) setState(() => _fontSize -= 1);
+                  if (_fontSize > 12) {
+                    setState(() {
+                      _fontSize -= 1;
+                      for (final b in _blocks) {
+                        b.spansDark = null;
+                        b.spansLight = null;
+                      }
+                    });
+                  }
                 }
               },
               itemBuilder: (context) => [
@@ -831,20 +868,18 @@ class _MarkdownReaderScreenState extends State<MarkdownReaderScreen> {
       );
     }
 
-    return SelectionArea(
-      child: ListView.builder(
-        controller: _scrollController,
-        physics: const AlwaysScrollableScrollPhysics(
-          parent: BouncingScrollPhysics(),
-        ),
-        cacheExtent: 800,
-        padding: const EdgeInsets.fromLTRB(18, 16, 18, 48),
-        itemCount: filteredBlocks.length,
-        itemBuilder: (context, index) {
-          final block = filteredBlocks[index];
-          return _buildBlockWidget(block, isDark);
-        },
+    return ListView.builder(
+      controller: _scrollController,
+      physics: const AlwaysScrollableScrollPhysics(
+        parent: BouncingScrollPhysics(),
       ),
+      cacheExtent: 1200,
+      padding: const EdgeInsets.fromLTRB(18, 16, 18, 48),
+      itemCount: filteredBlocks.length,
+      itemBuilder: (context, index) {
+        final block = filteredBlocks[index];
+        return _buildBlockWidget(block, isDark);
+      },
     );
   }
 
@@ -962,7 +997,7 @@ class _MarkdownReaderScreenState extends State<MarkdownReaderScreen> {
                   ),
                 ),
               ),
-              Expanded(child: _buildRichText(block.text, isDark)),
+              Expanded(child: _buildRichText(block, isDark)),
             ],
           ),
         );
@@ -984,7 +1019,7 @@ class _MarkdownReaderScreenState extends State<MarkdownReaderScreen> {
                   ),
                 ),
               ),
-              Expanded(child: _buildRichText(block.text, isDark)),
+              Expanded(child: _buildRichText(block, isDark)),
             ],
           ),
         );
@@ -1044,7 +1079,7 @@ class _MarkdownReaderScreenState extends State<MarkdownReaderScreen> {
       case MdBlockType.paragraph:
         return Padding(
           padding: const EdgeInsets.symmetric(vertical: 4),
-          child: _buildRichText(block.text, isDark),
+          child: _buildRichText(block, isDark),
         );
     }
   }
@@ -1204,8 +1239,17 @@ class _MarkdownReaderScreenState extends State<MarkdownReaderScreen> {
     r'(\*\*([^*]+)\*\*)|(\*([^*]+)\*)|(`([^`]+)`)|(~~([^~]+)~~)|(\[([^\]]+)\]\(([^)]+)\))',
   );
 
-  Widget _buildRichText(String text, bool isDark) {
-    final spans = _parseInlineFormatting(text, isDark);
+  Widget _buildRichText(MdBlock block, bool isDark) {
+    List<InlineSpan>? spans = isDark ? block.spansDark : block.spansLight;
+    if (spans == null) {
+      spans = _parseInlineFormatting(block.text, isDark);
+      if (isDark) {
+        block.spansDark = spans;
+      } else {
+        block.spansLight = spans;
+      }
+    }
+
     return Text.rich(
       TextSpan(children: spans),
       style: TextStyle(
@@ -1242,34 +1286,18 @@ class _MarkdownReaderScreenState extends State<MarkdownReaderScreen> {
           ),
         );
       } else if (match.group(6) != null) {
-        // Inline code (`code`)
+        // Inline code (`code`) - ultra-lightweight TextSpan with background
         spans.add(
-          WidgetSpan(
-            alignment: PlaceholderAlignment.middle,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-              margin: const EdgeInsets.symmetric(horizontal: 2),
-              decoration: BoxDecoration(
-                color: isDark
-                    ? const Color(0xFF1E293B)
-                    : const Color(0xFFF1F5F9),
-                borderRadius: BorderRadius.circular(5),
-                border: Border.all(
-                  color: isDark
-                      ? const Color(0xFF334155)
-                      : const Color(0xFFE2E8F0),
-                  width: 0.8,
-                ),
-              ),
-              child: Text(
-                match.group(6)!,
-                style: const TextStyle(
-                  fontFamily: 'monospace',
-                  fontSize: 12.5,
-                  color: Color(0xFF0284C7),
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
+          TextSpan(
+            text: ' ${match.group(6)!} ',
+            style: TextStyle(
+              fontFamily: 'monospace',
+              fontSize: (_fontSize - 1.5).clamp(10, 22),
+              backgroundColor: isDark
+                  ? const Color(0xFF1E293B)
+                  : const Color(0xFFE2E8F0),
+              color: const Color(0xFF0284C7),
+              fontWeight: FontWeight.w600,
             ),
           ),
         );

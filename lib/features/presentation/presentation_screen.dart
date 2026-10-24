@@ -174,6 +174,26 @@ class _PresentationScreenState extends State<PresentationScreen> {
     });
   }
 
+  void _duplicateCurrentSlide() {
+    if (_activeSlideIndex < _slides.length) {
+      final s = _slides[_activeSlideIndex];
+      setState(() {
+        _slides.insert(
+          _activeSlideIndex + 1,
+          SlideData(
+            title: '${s.title} (Salinan)',
+            subtitle: s.subtitle,
+            content: s.content,
+            themeIndex: s.themeIndex,
+          ),
+        );
+        _activeSlideIndex++;
+        _syncCurrentSlideToControllers();
+        _isDirty = true;
+      });
+    }
+  }
+
   void _deleteSlide(int index) {
     if (_slides.length <= 1) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -228,6 +248,171 @@ class _PresentationScreenState extends State<PresentationScreen> {
     );
   }
 
+  void _showFullTitleSheet(String title) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 38,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: isDark ? Colors.white24 : Colors.black12,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppTheme.pptOrange.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: const Text(
+                        'POWERPOINT',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          color: AppTheme.pptOrange,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Nama Dokumen Lengkap',
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                        color: isDark ? Colors.white60 : Colors.black54,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                SelectableText(
+                  title,
+                  style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w700,
+                    height: 1.35,
+                    color: isDark ? Colors.white : const Color(0xFF0F172A),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        icon: const Icon(Icons.copy_rounded, size: 18),
+                        label: const Text('Salin Nama'),
+                        onPressed: () {
+                          Clipboard.setData(ClipboardData(text: title));
+                          Navigator.pop(ctx);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Nama dokumen berhasil disalin'),
+                              duration: Duration(seconds: 1),
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: FilledButton.icon(
+                        style: FilledButton.styleFrom(
+                          backgroundColor: AppTheme.pptOrange,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        icon: const Icon(Icons.edit_rounded, size: 18),
+                        label: const Text('Ganti Nama'),
+                        onPressed: () {
+                          Navigator.pop(ctx);
+                          _promptRename();
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _promptRename() {
+    final controller = TextEditingController(text: _docTitleController.text);
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text(
+          'Ganti Nama Presentasi',
+          style: TextStyle(fontSize: 16),
+        ),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: const InputDecoration(
+            hintText: 'Nama Presentasi',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Batal'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: AppTheme.pptOrange),
+            onPressed: () {
+              final newTitle = controller.text.trim();
+              if (newTitle.isNotEmpty) {
+                setState(() {
+                  _docTitleController.text = newTitle;
+                  widget.document.title = newTitle;
+                  _isDirty = true;
+                });
+                _savePresentation(silent: true);
+              }
+              Navigator.pop(ctx);
+            },
+            child: const Text('Simpan'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   void dispose() {
     _docTitleController.dispose();
@@ -241,8 +426,10 @@ class _PresentationScreenState extends State<PresentationScreen> {
   Widget build(BuildContext context) {
     final currentSlide = _slides[_activeSlideIndex];
     final currentTheme = _themes[currentSlide.themeIndex % _themes.length];
-
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final displayTitle = _docTitleController.text.trim().isEmpty
+        ? widget.document.title
+        : _docTitleController.text.trim();
 
     return PopScope(
       canPop: true,
@@ -254,66 +441,34 @@ class _PresentationScreenState extends State<PresentationScreen> {
       child: Scaffold(
         backgroundColor: isDark ? AppTheme.darkBg : const Color(0xFFF8FAFC),
         appBar: AppBar(
-          backgroundColor: isDark ? AppTheme.darkBg : Colors.white,
-          foregroundColor: isDark
-              ? AppTheme.darkTextPrimary
-              : AppTheme.lightTextPrimary,
+          backgroundColor: isDark ? AppTheme.darkSurface : Colors.white,
           elevation: 0,
-          scrolledUnderElevation: 0,
+          scrolledUnderElevation: 1,
           leading: IconButton(
             icon: const Icon(Icons.arrow_back_rounded),
             onPressed: () => Navigator.pop(context),
           ),
           titleSpacing: 0,
-          title: Row(
-            children: [
-              Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  color: isDark
-                      ? AppTheme.pptOrange.withValues(alpha: 0.2)
-                      : AppTheme.pptOrangeLight,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: AppTheme.pptOrange.withValues(alpha: 0.25),
-                    width: 1,
-                  ),
-                ),
-                child: const Icon(
-                  Icons.slideshow_rounded,
-                  color: AppTheme.pptOrange,
-                  size: 18,
-                ),
+          title: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => _showFullTitleSheet(displayTitle),
+            onLongPress: () => _showFullTitleSheet(displayTitle),
+            child: Text(
+              displayTitle,
+              maxLines: 2,
+              softWrap: true,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 14.5,
+                fontWeight: FontWeight.w700,
+                height: 1.25,
+                color: isDark ? Colors.white : const Color(0xFF0F172A),
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: TextField(
-                  controller: _docTitleController,
-                  style: TextStyle(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 16,
-                    letterSpacing: -0.2,
-                    color: isDark
-                        ? AppTheme.darkTextPrimary
-                        : AppTheme.lightTextPrimary,
-                  ),
-                  decoration: InputDecoration(
-                    border: InputBorder.none,
-                    hintText: 'Nama Presentasi',
-                    hintStyle: TextStyle(
-                      color: isDark
-                          ? AppTheme.darkTextSecondary
-                          : AppTheme.lightTextSecondary,
-                    ),
-                  ),
-                  onChanged: (_) => setState(() => _isDirty = true),
-                ),
-              ),
-            ],
+            ),
           ),
           actions: [
             IconButton(
+              visualDensity: VisualDensity.compact,
               icon: const Icon(
                 Icons.play_circle_fill_rounded,
                 color: AppTheme.pptOrange,
@@ -322,57 +477,202 @@ class _PresentationScreenState extends State<PresentationScreen> {
               tooltip: 'Tayangkan Slideshow',
               onPressed: _startSlideshow,
             ),
-            Padding(
-              padding: const EdgeInsets.only(right: 12),
-              child: _isSaving
+            IconButton(
+              visualDensity: VisualDensity.compact,
+              icon: _isSaving
                   ? const SizedBox(
-                      width: 20,
-                      height: 20,
+                      width: 18,
+                      height: 18,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : TextButton.icon(
-                      style: TextButton.styleFrom(
-                        backgroundColor: _isDirty
-                            ? AppTheme.pptOrange
-                            : (isDark
-                                  ? AppTheme.darkSurface
-                                  : const Color(0xFFE2E8F0)),
-                        foregroundColor: _isDirty
-                            ? Colors.white
-                            : (isDark
-                                  ? AppTheme.darkTextSecondary
-                                  : AppTheme.lightTextSecondary),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 6,
-                        ),
-                      ),
-                      icon: Icon(
-                        Icons.save_rounded,
-                        size: 16,
-                        color: _isDirty
-                            ? Colors.white
-                            : (isDark
-                                  ? AppTheme.darkTextSecondary
-                                  : AppTheme.lightTextSecondary),
-                      ),
-                      label: Text(
-                        _isDirty ? 'Simpan' : 'Tersimpan',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      onPressed: _savePresentation,
+                  : Icon(
+                      Icons.save_rounded,
+                      size: 22,
+                      color: _isDirty
+                          ? AppTheme.pptOrange
+                          : (isDark ? Colors.white54 : Colors.grey),
                     ),
+              tooltip: _isDirty ? 'Simpan Presentasi' : 'Sudah Tersimpan',
+              onPressed: _savePresentation,
+            ),
+            PopupMenuButton<String>(
+              icon: Icon(
+                Icons.more_vert_rounded,
+                size: 21,
+                color: isDark ? Colors.white70 : const Color(0xFF475569),
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              onSelected: (val) {
+                if (val == 'rename') _promptRename();
+                if (val == 'slideshow') _startSlideshow();
+                if (val == 'add_slide') _addNewSlide();
+                if (val == 'duplicate_slide') _duplicateCurrentSlide();
+              },
+              itemBuilder: (context) => [
+                const PopupMenuItem(
+                  value: 'rename',
+                  child: Row(
+                    children: [
+                      Icon(Icons.edit_rounded, size: 18),
+                      SizedBox(width: 10),
+                      Text('Ganti Nama'),
+                    ],
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: 'slideshow',
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.play_arrow_rounded,
+                        size: 18,
+                        color: AppTheme.pptOrange,
+                      ),
+                      SizedBox(width: 10),
+                      Text('Tayangkan Slideshow'),
+                    ],
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: 'add_slide',
+                  child: Row(
+                    children: [
+                      Icon(Icons.add_rounded, size: 18),
+                      SizedBox(width: 10),
+                      Text('Tambah Slide Baru'),
+                    ],
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: 'duplicate_slide',
+                  child: Row(
+                    children: [
+                      Icon(Icons.copy_rounded, size: 18),
+                      SizedBox(width: 10),
+                      Text('Duplikasi Slide Ini'),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ],
         ),
         body: Column(
           children: [
+            // Elegant Document Info Strip (Uniform across entire app!)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
+              decoration: BoxDecoration(
+                color: isDark
+                    ? const Color(0xFF111726)
+                    : const Color(0xFFF1F5F9),
+                border: Border(
+                  bottom: BorderSide(
+                    color: isDark
+                        ? AppTheme.darkBorder
+                        : const Color(0xFFE2E8F0),
+                    width: 0.8,
+                  ),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppTheme.pptOrange.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: const Text(
+                      'POWERPOINT',
+                      style: TextStyle(
+                        fontSize: 9.5,
+                        fontWeight: FontWeight.w800,
+                        color: AppTheme.pptOrange,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Icon(
+                    Icons.slideshow_rounded,
+                    size: 13,
+                    color: isDark
+                        ? const Color(0xFF94A3B8)
+                        : const Color(0xFF64748B),
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Slide ${_activeSlideIndex + 1} dari ${_slides.length}',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: isDark
+                          ? const Color(0xFF94A3B8)
+                          : const Color(0xFF64748B),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    width: 3,
+                    height: 3,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: isDark
+                          ? const Color(0xFF475569)
+                          : const Color(0xFFCBD5E1),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Icon(
+                    Icons.aspect_ratio_rounded,
+                    size: 13,
+                    color: isDark
+                        ? const Color(0xFF94A3B8)
+                        : const Color(0xFF64748B),
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    '16:9',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: isDark
+                          ? const Color(0xFF94A3B8)
+                          : const Color(0xFF64748B),
+                    ),
+                  ),
+                  const Spacer(),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 1.5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? const Color(0xFF1E293B)
+                          : const Color(0xFFE2E8F0),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      currentTheme['name'] as String? ?? 'Tema',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                        color: isDark
+                            ? const Color(0xFF94A3B8)
+                            : const Color(0xFF475569),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
             // Slide Canvas Preview
             Expanded(
               flex: 6,

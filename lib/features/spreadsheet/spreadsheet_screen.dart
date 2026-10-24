@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../core/models/document_model.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/platform_share.dart';
@@ -219,9 +220,190 @@ class _SpreadsheetScreenState extends State<SpreadsheetScreen> {
     );
   }
 
+  void _promptRename() {
+    final c = TextEditingController(text: _titleController.text);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: isDark ? AppTheme.darkCard : Colors.white,
+        title: const Text(
+          'Ganti Nama Lembar Kerja',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
+        content: TextField(
+          controller: c,
+          autofocus: true,
+          decoration: InputDecoration(
+            hintText: 'Nama Lembar Kerja',
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Batal'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final newName = c.text.trim();
+              if (newName.isNotEmpty) {
+                setState(() {
+                  _titleController.text = newName;
+                  widget.document.title = newName;
+                  _isDirty = true;
+                });
+              }
+              Navigator.pop(ctx);
+            },
+            child: const Text('Simpan'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showFullTitleSheet(String title) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: isDark ? AppTheme.darkSurface : Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? const Color(0xFF334155)
+                        : const Color(0xFFE2E8F0),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  const Icon(
+                    Icons.table_chart_rounded,
+                    size: 20,
+                    color: AppTheme.sheetGreen,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Nama Lengkap Lembar Kerja',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: isDark
+                          ? AppTheme.darkTextSecondary
+                          : AppTheme.lightTextSecondary,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              SelectableText(
+                title.isEmpty ? 'Lembar Kerja Tanpa Judul' : title,
+                style: TextStyle(
+                  fontSize: 15.5,
+                  fontWeight: FontWeight.w800,
+                  height: 1.4,
+                  color: isDark ? Colors.white : const Color(0xFF0F172A),
+                ),
+              ),
+              if (widget.document.filePath != null) ...[
+                const SizedBox(height: 8),
+                Text(
+                  widget.document.filePath!,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: isDark
+                        ? const Color(0xFF64748B)
+                        : const Color(0xFF94A3B8),
+                  ),
+                ),
+              ],
+              const SizedBox(height: 18),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        Clipboard.setData(ClipboardData(text: title));
+                        Navigator.pop(ctx);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Nama berkas disalin'),
+                            duration: Duration(seconds: 1),
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.copy_rounded, size: 16),
+                      label: const Text('Salin Nama'),
+                      style: OutlinedButton.styleFrom(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: FilledButton.icon(
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        _promptRename();
+                      },
+                      icon: const Icon(Icons.edit_rounded, size: 16),
+                      label: const Text('Ganti Nama'),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: AppTheme.sheetGreen,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _addRow() {
+    setState(() {
+      _rowCount++;
+      _isDirty = true;
+    });
+  }
+
+  void _addColumn() {
+    setState(() {
+      _colCount++;
+      _isDirty = true;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final displayTitle = _titleController.text.trim().isEmpty
+        ? 'Lembar Kerja Baru'
+        : _titleController.text.trim();
 
     return PopScope(
       canPop: true,
@@ -233,126 +415,232 @@ class _SpreadsheetScreenState extends State<SpreadsheetScreen> {
       child: Scaffold(
         backgroundColor: isDark ? AppTheme.darkBg : const Color(0xFFF8FAFC),
         appBar: AppBar(
-          backgroundColor: isDark ? AppTheme.darkBg : Colors.white,
-          foregroundColor: isDark
-              ? AppTheme.darkTextPrimary
-              : AppTheme.lightTextPrimary,
+          backgroundColor: isDark ? AppTheme.darkSurface : Colors.white,
           elevation: 0,
-          scrolledUnderElevation: 0,
+          scrolledUnderElevation: 1,
           leading: IconButton(
             icon: const Icon(Icons.arrow_back_rounded),
             onPressed: () => Navigator.pop(context),
           ),
           titleSpacing: 0,
-          title: Row(
-            children: [
-              Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  color: isDark
-                      ? AppTheme.sheetGreen.withValues(alpha: 0.2)
-                      : AppTheme.sheetGreenLight,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: AppTheme.sheetGreen.withValues(alpha: 0.25),
-                    width: 1,
-                  ),
-                ),
-                child: const Icon(
-                  Icons.table_chart_rounded,
-                  color: AppTheme.sheetGreen,
-                  size: 18,
-                ),
+          title: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => _showFullTitleSheet(displayTitle),
+            onLongPress: () => _showFullTitleSheet(displayTitle),
+            child: Text(
+              displayTitle,
+              maxLines: 2,
+              softWrap: true,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 14.5,
+                fontWeight: FontWeight.w700,
+                height: 1.25,
+                color: isDark ? Colors.white : const Color(0xFF0F172A),
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: TextField(
-                  controller: _titleController,
-                  style: TextStyle(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 16,
-                    letterSpacing: -0.2,
-                    color: isDark
-                        ? AppTheme.darkTextPrimary
-                        : AppTheme.lightTextPrimary,
-                  ),
-                  decoration: InputDecoration(
-                    border: InputBorder.none,
-                    hintText: 'Nama Lembar Kerja',
-                    hintStyle: TextStyle(
-                      color: isDark
-                          ? AppTheme.darkTextSecondary
-                          : AppTheme.lightTextSecondary,
-                    ),
-                  ),
-                  onChanged: (_) => setState(() => _isDirty = true),
-                ),
-              ),
-            ],
+            ),
           ),
           actions: [
             IconButton(
+              visualDensity: VisualDensity.compact,
+              icon: Icon(
+                Icons.edit_note_rounded,
+                size: 22,
+                color: isDark ? Colors.white70 : const Color(0xFF475569),
+              ),
+              tooltip: 'Ganti Nama Dokumen',
+              onPressed: _promptRename,
+            ),
+            IconButton(
+              visualDensity: VisualDensity.compact,
               icon: Icon(
                 Icons.file_download_outlined,
-                color: isDark
-                    ? AppTheme.darkTextSecondary
-                    : AppTheme.lightTextSecondary,
+                size: 21,
+                color: isDark ? Colors.white70 : const Color(0xFF475569),
               ),
               tooltip: 'Ekspor CSV',
               onPressed: _exportCSV,
             ),
-            Padding(
-              padding: const EdgeInsets.only(right: 12),
-              child: _isSaving
+            IconButton(
+              visualDensity: VisualDensity.compact,
+              icon: _isSaving
                   ? const SizedBox(
-                      width: 20,
-                      height: 20,
+                      width: 18,
+                      height: 18,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : TextButton.icon(
-                      style: TextButton.styleFrom(
-                        backgroundColor: _isDirty
-                            ? AppTheme.sheetGreen
-                            : (isDark
-                                  ? AppTheme.darkSurface
-                                  : const Color(0xFFE2E8F0)),
-                        foregroundColor: _isDirty
-                            ? Colors.white
-                            : (isDark
-                                  ? AppTheme.darkTextSecondary
-                                  : AppTheme.lightTextSecondary),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 6,
-                        ),
-                      ),
-                      icon: Icon(
-                        Icons.save_rounded,
-                        size: 16,
-                        color: _isDirty
-                            ? Colors.white
-                            : (isDark
-                                  ? AppTheme.darkTextSecondary
-                                  : AppTheme.lightTextSecondary),
-                      ),
-                      label: Text(
-                        _isDirty ? 'Simpan' : 'Tersimpan',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      onPressed: _saveSheet,
+                  : Icon(
+                      Icons.save_rounded,
+                      size: 22,
+                      color: _isDirty
+                          ? AppTheme.sheetGreen
+                          : (isDark ? Colors.white54 : Colors.grey),
                     ),
+              tooltip: _isDirty ? 'Simpan Perubahan' : 'Sudah Tersimpan',
+              onPressed: _saveSheet,
+            ),
+            PopupMenuButton<String>(
+              icon: Icon(
+                Icons.more_vert_rounded,
+                size: 21,
+                color: isDark ? Colors.white70 : const Color(0xFF475569),
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              onSelected: (val) {
+                if (val == 'rename') _promptRename();
+                if (val == 'csv') _exportCSV();
+                if (val == 'add_row') _addRow();
+                if (val == 'add_col') _addColumn();
+              },
+              itemBuilder: (context) => [
+                const PopupMenuItem(
+                  value: 'rename',
+                  child: Row(
+                    children: [
+                      Icon(Icons.edit_rounded, size: 18),
+                      SizedBox(width: 10),
+                      Text('Ganti Nama'),
+                    ],
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: 'csv',
+                  child: Row(
+                    children: [
+                      Icon(Icons.file_download_outlined, size: 18),
+                      SizedBox(width: 10),
+                      Text('Ekspor ke CSV'),
+                    ],
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: 'add_row',
+                  child: Row(
+                    children: [
+                      Icon(Icons.table_rows_rounded, size: 18),
+                      SizedBox(width: 10),
+                      Text('Tambah Baris'),
+                    ],
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: 'add_col',
+                  child: Row(
+                    children: [
+                      Icon(Icons.view_column_rounded, size: 18),
+                      SizedBox(width: 10),
+                      Text('Tambah Kolom'),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ],
         ),
         body: Column(
           children: [
+            // Elegant Document Info Strip (Uniform across entire app!)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
+              decoration: BoxDecoration(
+                color: isDark
+                    ? const Color(0xFF111726)
+                    : const Color(0xFFF1F5F9),
+                border: Border(
+                  bottom: BorderSide(
+                    color: isDark
+                        ? AppTheme.darkBorder
+                        : const Color(0xFFE2E8F0),
+                    width: 0.8,
+                  ),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppTheme.sheetGreen.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: const Text(
+                      'EXCEL',
+                      style: TextStyle(
+                        fontSize: 9.5,
+                        fontWeight: FontWeight.w800,
+                        color: AppTheme.sheetGreen,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Icon(
+                    Icons.grid_on_rounded,
+                    size: 13,
+                    color: isDark
+                        ? AppTheme.darkTextSecondary
+                        : AppTheme.lightTextSecondary,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    '$_rowCount baris × $_colCount kolom',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: isDark
+                          ? AppTheme.darkTextSecondary
+                          : AppTheme.lightTextSecondary,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    '•',
+                    style: TextStyle(
+                      color: isDark
+                          ? const Color(0xFF475569)
+                          : const Color(0xFF94A3B8),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Sel: $_selectedCell',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.sheetGreen,
+                    ),
+                  ),
+                  const Spacer(),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.functions_rounded,
+                        size: 14,
+                        color: isDark
+                            ? AppTheme.darkTextSecondary
+                            : AppTheme.lightTextSecondary,
+                      ),
+                      const SizedBox(width: 3),
+                      Text(
+                        'Auto FX',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: isDark
+                              ? AppTheme.darkTextSecondary
+                              : AppTheme.lightTextSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
             // Formula Bar (fx)
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),

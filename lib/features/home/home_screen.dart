@@ -882,6 +882,48 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     },
                     child: Column(
                       children: [
+                        // Section 1 Header: Creation Hub (Visual Hierarchy Level 1)
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(18, 8, 18, 2),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'BUAT DOKUMEN BARU',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 0.8,
+                                  color: isDark
+                                      ? const Color(0xFF94A3B8)
+                                      : const Color(0xFF64748B),
+                                ),
+                              ),
+                              Row(
+                                children: [
+                                  Text(
+                                    'Geser',
+                                    style: TextStyle(
+                                      fontSize: 10.5,
+                                      fontWeight: FontWeight.w600,
+                                      color: isDark
+                                          ? const Color(0xFF64748B)
+                                          : const Color(0xFF94A3B8),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 3),
+                                  Icon(
+                                    Icons.arrow_forward_rounded,
+                                    size: 12,
+                                    color: isDark
+                                        ? const Color(0xFF64748B)
+                                        : const Color(0xFF94A3B8),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
                         // Quick Tools Module Carousel (Horizontal Slider)
                         SingleChildScrollView(
                           scrollDirection: Axis.horizontal,
@@ -1212,12 +1254,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                             ),
                           ),
 
-                        // Section Header: Documents Counter & Status
+                        // Section 3: Document Workspace & List (Visual Hierarchy Level 3)
                         Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 18,
-                            vertical: 4,
-                          ),
+                          padding: const EdgeInsets.fromLTRB(18, 4, 18, 6),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
@@ -1228,16 +1267,18 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                       child: Text(
                                         _selectedFilter == 'device'
                                             ? 'Berkas di Memori HP'
-                                            : 'Dokumen Tersimpan',
+                                            : (_searchQuery.isNotEmpty
+                                                  ? 'Hasil Pencarian'
+                                                  : 'Dokumen Tersimpan'),
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
                                         style: TextStyle(
-                                          fontSize: 13.5,
-                                          fontWeight: FontWeight.w700,
-                                          letterSpacing: -0.2,
+                                          fontSize: 14.5,
+                                          fontWeight: FontWeight.w800,
+                                          letterSpacing: -0.3,
                                           color: isDark
-                                              ? const Color(0xFFE2E8F0)
-                                              : const Color(0xFF1E293B),
+                                              ? const Color(0xFFF1F5F9)
+                                              : const Color(0xFF0F172A),
                                         ),
                                       ),
                                     ),
@@ -1257,29 +1298,29 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                               const SizedBox(width: 8),
                               Container(
                                 padding: const EdgeInsets.symmetric(
-                                  horizontal: 7,
-                                  vertical: 2,
+                                  horizontal: 9,
+                                  vertical: 3,
                                 ),
                                 decoration: BoxDecoration(
                                   color: isDark
                                       ? AppTheme.darkSurface
-                                      : const Color(0xFFF1F5F9),
-                                  borderRadius: BorderRadius.circular(6),
+                                      : const Color(0xFFE2E8F0),
+                                  borderRadius: BorderRadius.circular(8),
                                   border: Border.all(
                                     color: isDark
                                         ? AppTheme.darkBorder
-                                        : const Color(0xFFE2E8F0),
+                                        : const Color(0xFFCBD5E1),
                                     width: 0.8,
                                   ),
                                 ),
                                 child: Text(
                                   '${docs.length} berkas',
                                   style: TextStyle(
-                                    fontSize: 10.5,
-                                    fontWeight: FontWeight.w600,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
                                     color: isDark
-                                        ? AppTheme.darkTextSecondary
-                                        : AppTheme.lightTextSecondary,
+                                        ? const Color(0xFF94A3B8)
+                                        : const Color(0xFF475569),
                                   ),
                                 ),
                               ),

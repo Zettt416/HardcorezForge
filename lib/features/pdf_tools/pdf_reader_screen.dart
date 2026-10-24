@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:math' as math;
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../core/models/document_model.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/platform_share.dart';
@@ -250,6 +250,108 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> {
     }
   }
 
+  void _showFullTitleSheet(String title) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 38,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: isDark ? Colors.white24 : Colors.black12,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppTheme.pdfRed.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: const Text(
+                        'PDF',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          color: AppTheme.pdfRed,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Nama Berkas Dokumen',
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                        color: isDark ? Colors.white60 : Colors.black54,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                SelectableText(
+                  title,
+                  style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w700,
+                    height: 1.35,
+                    color: isDark ? Colors.white : const Color(0xFF0F172A),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppTheme.pdfRed,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    icon: const Icon(Icons.copy_rounded, size: 18),
+                    label: const Text('Salin Nama Berkas'),
+                    onPressed: () {
+                      Clipboard.setData(ClipboardData(text: title));
+                      Navigator.pop(ctx);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Nama berkas PDF berhasil disalin'),
+                          duration: Duration(seconds: 1),
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final bgColor = _bgThemes[_viewMode];
@@ -260,74 +362,34 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> {
     return Scaffold(
       backgroundColor: isDark ? AppTheme.darkBg : const Color(0xFFF1F5F9),
       appBar: AppBar(
-        backgroundColor: isDark ? AppTheme.darkBg : Colors.white,
-        foregroundColor: isDark
-            ? AppTheme.darkTextPrimary
-            : AppTheme.lightTextPrimary,
+        backgroundColor: isDark ? AppTheme.darkSurface : Colors.white,
         elevation: 0,
-        scrolledUnderElevation: 0,
+        scrolledUnderElevation: 1,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
           onPressed: () => Navigator.pop(context),
         ),
         titleSpacing: 0,
-        title: Row(
-          children: [
-            Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: isDark
-                    ? AppTheme.pdfRed.withValues(alpha: 0.2)
-                    : AppTheme.pdfRedLight,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: AppTheme.pdfRed.withValues(alpha: 0.25),
-                  width: 1,
-                ),
-              ),
-              child: const Icon(
-                Icons.picture_as_pdf_rounded,
-                color: AppTheme.pdfRed,
-                size: 18,
-              ),
+        title: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () => _showFullTitleSheet(widget.document.title),
+          onLongPress: () => _showFullTitleSheet(widget.document.title),
+          child: Text(
+            widget.document.title,
+            maxLines: 2,
+            softWrap: true,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 14.5,
+              fontWeight: FontWeight.w700,
+              height: 1.25,
+              color: isDark ? Colors.white : const Color(0xFF0F172A),
             ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    widget.document.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: -0.2,
-                      color: isDark
-                          ? AppTheme.darkTextPrimary
-                          : AppTheme.lightTextPrimary,
-                    ),
-                  ),
-                  Text(
-                    'Hal. $_currentPage / $_totalPages',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w500,
-                      color: isDark
-                          ? AppTheme.darkTextSecondary
-                          : AppTheme.lightTextSecondary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
+          ),
         ),
         actions: [
-          // Theme view toggle (Day/Sepia/Night)
           IconButton(
+            visualDensity: VisualDensity.compact,
             icon: Icon(
               _viewMode == 0
                   ? Icons.wb_sunny_rounded
@@ -343,279 +405,437 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> {
               setState(() => _viewMode = (_viewMode + 1) % 3);
             },
           ),
-          // Add Signature Button
           IconButton(
-            icon: const Icon(Icons.draw_rounded, color: AppTheme.pdfRed),
+            visualDensity: VisualDensity.compact,
+            icon: const Icon(
+              Icons.draw_rounded,
+              color: AppTheme.pdfRed,
+              size: 22,
+            ),
             tooltip: 'Bubuhkan Tanda Tangan',
             onPressed: _openSignPad,
           ),
-          // Save Document Button
-          Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: TextButton.icon(
-              style: TextButton.styleFrom(
-                backgroundColor: AppTheme.pdfRed,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 6,
-                ),
-              ),
-              icon: const Icon(
-                Icons.check_rounded,
-                size: 16,
-                color: Colors.white,
-              ),
-              label: const Text(
-                'Simpan',
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
-              ),
-              onPressed: _saveDocumentWithSignatures,
+          IconButton(
+            visualDensity: VisualDensity.compact,
+            icon: const Icon(
+              Icons.save_rounded,
+              color: AppTheme.pdfRed,
+              size: 22,
             ),
+            tooltip: 'Simpan Dokumen',
+            onPressed: _saveDocumentWithSignatures,
+          ),
+          PopupMenuButton<String>(
+            icon: Icon(
+              Icons.more_vert_rounded,
+              size: 21,
+              color: isDark ? Colors.white70 : const Color(0xFF475569),
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            onSelected: (val) {
+              if (val == 'full_title') {
+                _showFullTitleSheet(widget.document.title);
+              }
+              if (val == 'sign') _openSignPad();
+              if (val == 'save') _saveDocumentWithSignatures();
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'full_title',
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline_rounded, size: 18),
+                    SizedBox(width: 10),
+                    Text('Lihat Nama Lengkap'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'sign',
+                child: Row(
+                  children: [
+                    Icon(Icons.draw_rounded, size: 18, color: AppTheme.pdfRed),
+                    SizedBox(width: 10),
+                    Text('Bubuhkan TTD'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'save',
+                child: Row(
+                  children: [
+                    Icon(Icons.save_rounded, size: 18),
+                    SizedBox(width: 10),
+                    Text('Simpan Dokumen'),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),
-      body: Stack(
+      body: Column(
         children: [
-          // Main PDF Page Viewer
-          GestureDetector(
-            onTap: () {
-              // Tap on backdrop deselects any signature box
-              setState(() {
-                for (final s in _placedSignatures) {
-                  s.isSelected = false;
-                }
-              });
-            },
-            child: InteractiveViewer(
-              minScale: 0.8,
-              maxScale: 3.0,
-              child: Center(
-                child: SingleChildScrollView(
-                  child: Container(
-                    margin: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 20,
-                    ),
-                    constraints: const BoxConstraints(
-                      maxWidth: 550,
-                      minHeight: 680,
-                    ),
-                    decoration: BoxDecoration(
-                      color: _isRealPdfFile ? Colors.white : bgColor,
-                      borderRadius: BorderRadius.circular(8),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.18),
-                          blurRadius: 18,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    // Paper Stack: Contains Document text/render + Signatures on this page
-                    child: Stack(
-                      children: [
-                        // 1. Document Page Rendering / Content
-                        if (_isRealPdfFile) ...[
-                          if (_isLoadingPdf)
-                            Container(
-                              height: 580,
-                              alignment: Alignment.center,
-                              child: const Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  CircularProgressIndicator(
-                                    color: AppTheme.pdfRed,
-                                  ),
-                                  SizedBox(height: 14),
-                                  Text(
-                                    'Memuat halaman PDF...',
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w500,
-                                      color: Colors.grey,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            )
-                          else if (_pdfPageBytes != null)
-                            _buildFilteredPdfImage()
-                          else
-                            Container(
-                              height: 400,
-                              padding: const EdgeInsets.all(24),
-                              alignment: Alignment.center,
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Icon(
-                                    Icons.picture_as_pdf_outlined,
-                                    size: 48,
-                                    color: Colors.grey,
-                                  ),
-                                  const SizedBox(height: 12),
-                                  Text(
-                                    _pdfLoadError ??
-                                        'Tidak dapat menampilkan halaman berkas PDF.',
-                                    textAlign: TextAlign.center,
-                                    style: const TextStyle(
-                                      color: Colors.grey,
-                                      fontSize: 13,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                        ] else ...[
-                          // Standalone / Newly created PDF in app
-                          Padding(
-                            padding: const EdgeInsets.all(28),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(
-                                      'HARDCOREZFORGE OFFICIAL',
-                                      style: TextStyle(
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.bold,
-                                        letterSpacing: 1.5,
-                                        color: Colors.grey.shade500,
-                                      ),
-                                    ),
-                                    Text(
-                                      'HLM $_currentPage',
-                                      style: TextStyle(
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.grey.shade500,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const Divider(height: 20),
-                                Text(
-                                  _getPageTitle(_currentPage),
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                    color: textColor,
-                                  ),
-                                ),
-                                const SizedBox(height: 14),
-                                Text(
-                                  _getPageContent(_currentPage),
-                                  style: TextStyle(
-                                    fontSize: 12.5,
-                                    height: 1.65,
-                                    color: textColor.withValues(alpha: 0.9),
-                                  ),
-                                ),
-                                const SizedBox(height: 80),
-                                const Divider(),
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(
-                                      'Status: Terverifikasi Digital',
-                                      style: TextStyle(
-                                        fontSize: 9,
-                                        color: Colors.grey.shade600,
-                                      ),
-                                    ),
-                                    Text(
-                                      'Dokumen PDF',
-                                      style: TextStyle(
-                                        fontSize: 9,
-                                        color: Colors.grey.shade600,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-
-                        // 2. Render signatures placed on THIS page directly on the paper canvas
-                        for (int i = 0; i < _placedSignatures.length; i++)
-                          if (_placedSignatures[i].page == _currentPage)
-                            _buildDraggableSignature(_placedSignatures[i], i),
-                      ],
-                    ),
-                  ),
+          // Elegant Document Info Strip (Uniform across entire app!)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF111726) : const Color(0xFFF1F5F9),
+              border: Border(
+                bottom: BorderSide(
+                  color: isDark ? AppTheme.darkBorder : const Color(0xFFE2E8F0),
+                  width: 0.8,
                 ),
               ),
             ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppTheme.pdfRed.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: const Text(
+                    'PDF',
+                    style: TextStyle(
+                      fontSize: 9.5,
+                      fontWeight: FontWeight.w800,
+                      color: AppTheme.pdfRed,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Icon(
+                  Icons.layers_outlined,
+                  size: 13,
+                  color: isDark
+                      ? const Color(0xFF94A3B8)
+                      : const Color(0xFF64748B),
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  'Hal. $_currentPage dari $_totalPages',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: isDark
+                        ? const Color(0xFF94A3B8)
+                        : const Color(0xFF64748B),
+                  ),
+                ),
+                if (_placedSignatures.isNotEmpty) ...[
+                  const SizedBox(width: 8),
+                  Container(
+                    width: 3,
+                    height: 3,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: isDark
+                          ? const Color(0xFF475569)
+                          : const Color(0xFFCBD5E1),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  const Icon(
+                    Icons.draw_rounded,
+                    size: 13,
+                    color: AppTheme.pdfRed,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    '${_placedSignatures.length} TTD',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: isDark
+                          ? const Color(0xFF94A3B8)
+                          : const Color(0xFF64748B),
+                    ),
+                  ),
+                ],
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 1.5,
+                  ),
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? const Color(0xFF1E293B)
+                        : const Color(0xFFE2E8F0),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    _viewMode == 0
+                        ? 'Mode Siang'
+                        : (_viewMode == 1 ? 'Mode Sepia' : 'Mode Malam'),
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                      color: isDark
+                          ? const Color(0xFF94A3B8)
+                          : const Color(0xFF475569),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
+          Expanded(
+            child: Stack(
+              children: [
+                // Main PDF Page Viewer
+                GestureDetector(
+                  onTap: () {
+                    // Tap on backdrop deselects any signature box
+                    setState(() {
+                      for (final s in _placedSignatures) {
+                        s.isSelected = false;
+                      }
+                    });
+                  },
+                  child: InteractiveViewer(
+                    minScale: 0.8,
+                    maxScale: 3.0,
+                    child: Center(
+                      child: SingleChildScrollView(
+                        child: Container(
+                          margin: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 20,
+                          ),
+                          constraints: const BoxConstraints(
+                            maxWidth: 550,
+                            minHeight: 680,
+                          ),
+                          decoration: BoxDecoration(
+                            color: _isRealPdfFile ? Colors.white : bgColor,
+                            borderRadius: BorderRadius.circular(8),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.18),
+                                blurRadius: 18,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          // Paper Stack: Contains Document text/render + Signatures on this page
+                          child: Stack(
+                            children: [
+                              // 1. Document Page Rendering / Content
+                              if (_isRealPdfFile) ...[
+                                if (_isLoadingPdf)
+                                  Container(
+                                    height: 580,
+                                    alignment: Alignment.center,
+                                    child: const Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        CircularProgressIndicator(
+                                          color: AppTheme.pdfRed,
+                                        ),
+                                        SizedBox(height: 14),
+                                        Text(
+                                          'Memuat halaman PDF...',
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w500,
+                                            color: Colors.grey,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  )
+                                else if (_pdfPageBytes != null)
+                                  _buildFilteredPdfImage()
+                                else
+                                  Container(
+                                    height: 400,
+                                    padding: const EdgeInsets.all(24),
+                                    alignment: Alignment.center,
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Icon(
+                                          Icons.picture_as_pdf_outlined,
+                                          size: 48,
+                                          color: Colors.grey,
+                                        ),
+                                        const SizedBox(height: 12),
+                                        Text(
+                                          _pdfLoadError ??
+                                              'Tidak dapat menampilkan halaman berkas PDF.',
+                                          textAlign: TextAlign.center,
+                                          style: const TextStyle(
+                                            color: Colors.grey,
+                                            fontSize: 13,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                              ] else ...[
+                                // Standalone / Newly created PDF in app
+                                Padding(
+                                  padding: const EdgeInsets.all(28),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Text(
+                                            'HARDCOREZFORGE OFFICIAL',
+                                            style: TextStyle(
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.bold,
+                                              letterSpacing: 1.5,
+                                              color: Colors.grey.shade500,
+                                            ),
+                                          ),
+                                          Text(
+                                            'HLM $_currentPage',
+                                            style: TextStyle(
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.grey.shade500,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const Divider(height: 20),
+                                      Text(
+                                        _getPageTitle(_currentPage),
+                                        style: TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                          color: textColor,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 14),
+                                      Text(
+                                        _getPageContent(_currentPage),
+                                        style: TextStyle(
+                                          fontSize: 12.5,
+                                          height: 1.65,
+                                          color: textColor.withValues(
+                                            alpha: 0.9,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 80),
+                                      const Divider(),
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Text(
+                                            'Status: Terverifikasi Digital',
+                                            style: TextStyle(
+                                              fontSize: 9,
+                                              color: Colors.grey.shade600,
+                                            ),
+                                          ),
+                                          Text(
+                                            'Dokumen PDF',
+                                            style: TextStyle(
+                                              fontSize: 9,
+                                              color: Colors.grey.shade600,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
 
-          // Bottom Floating Page Navigation Bar
-          Positioned(
-            bottom: MediaQuery.paddingOf(context).bottom + 16,
-            left: 40,
-            right: 40,
-            child: Center(
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF0F172A).withValues(alpha: 0.9),
-                  borderRadius: BorderRadius.circular(30),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.25),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(
-                      icon: const Icon(
-                        Icons.arrow_back_ios_rounded,
-                        size: 15,
-                        color: Colors.white,
-                      ),
-                      onPressed: _currentPage > 1
-                          ? () => _goToPage(_currentPage - 1)
-                          : null,
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 10),
-                      child: Text(
-                        '$_currentPage / $_totalPages',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13,
+                              // 2. Render signatures placed on THIS page directly on the paper canvas
+                              for (int i = 0; i < _placedSignatures.length; i++)
+                                if (_placedSignatures[i].page == _currentPage)
+                                  _buildDraggableSignature(
+                                    _placedSignatures[i],
+                                    i,
+                                  ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
-                    IconButton(
-                      icon: const Icon(
-                        Icons.arrow_forward_ios_rounded,
-                        size: 15,
-                        color: Colors.white,
-                      ),
-                      onPressed: _currentPage < _totalPages
-                          ? () => _goToPage(_currentPage + 1)
-                          : null,
-                    ),
-                  ],
+                  ),
                 ),
-              ),
+
+                // Bottom Floating Page Navigation Bar
+                Positioned(
+                  bottom: MediaQuery.paddingOf(context).bottom + 16,
+                  left: 40,
+                  right: 40,
+                  child: Center(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF0F172A).withValues(alpha: 0.9),
+                        borderRadius: BorderRadius.circular(30),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.25),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(
+                              Icons.arrow_back_ios_rounded,
+                              size: 15,
+                              color: Colors.white,
+                            ),
+                            onPressed: _currentPage > 1
+                                ? () => _goToPage(_currentPage - 1)
+                                : null,
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 10),
+                            child: Text(
+                              '$_currentPage / $_totalPages',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(
+                              Icons.arrow_forward_ios_rounded,
+                              size: 15,
+                              color: Colors.white,
+                            ),
+                            onPressed: _currentPage < _totalPages
+                                ? () => _goToPage(_currentPage + 1)
+                                : null,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ],

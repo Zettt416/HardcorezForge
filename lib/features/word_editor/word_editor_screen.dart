@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../core/models/document_model.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/document_repository.dart';
@@ -201,9 +202,176 @@ class _WordEditorScreenState extends State<WordEditorScreen> {
     );
   }
 
+  void _promptRename() {
+    final c = TextEditingController(text: _titleController.text);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: isDark ? AppTheme.darkCard : Colors.white,
+        title: const Text(
+          'Ganti Nama Dokumen',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
+        content: TextField(
+          controller: c,
+          autofocus: true,
+          decoration: InputDecoration(
+            hintText: 'Nama Dokumen',
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Batal'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final newName = c.text.trim();
+              if (newName.isNotEmpty) {
+                setState(() {
+                  _titleController.text = newName;
+                  widget.document.title = newName;
+                  _isDirty = true;
+                });
+              }
+              Navigator.pop(ctx);
+            },
+            child: const Text('Simpan'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showFullTitleSheet(String title) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: isDark ? AppTheme.darkSurface : Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? const Color(0xFF334155)
+                        : const Color(0xFFE2E8F0),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  const Icon(
+                    Icons.article_rounded,
+                    size: 20,
+                    color: AppTheme.docBlue,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Nama Lengkap Dokumen',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: isDark
+                          ? AppTheme.darkTextSecondary
+                          : AppTheme.lightTextSecondary,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              SelectableText(
+                title.isEmpty ? 'Dokumen Tanpa Judul' : title,
+                style: TextStyle(
+                  fontSize: 15.5,
+                  fontWeight: FontWeight.w800,
+                  height: 1.4,
+                  color: isDark ? Colors.white : const Color(0xFF0F172A),
+                ),
+              ),
+              if (widget.document.filePath != null) ...[
+                const SizedBox(height: 8),
+                Text(
+                  widget.document.filePath!,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: isDark
+                        ? const Color(0xFF64748B)
+                        : const Color(0xFF94A3B8),
+                  ),
+                ),
+              ],
+              const SizedBox(height: 18),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        Clipboard.setData(ClipboardData(text: title));
+                        Navigator.pop(ctx);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Nama berkas disalin'),
+                            duration: Duration(seconds: 1),
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.copy_rounded, size: 16),
+                      label: const Text('Salin Nama'),
+                      style: OutlinedButton.styleFrom(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: FilledButton.icon(
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        _promptRename();
+                      },
+                      icon: const Icon(Icons.edit_rounded, size: 16),
+                      label: const Text('Ganti Nama'),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: AppTheme.primaryBlue,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final displayTitle = _titleController.text.trim().isEmpty
+        ? 'Dokumen Baru'
+        : _titleController.text.trim();
 
     return PopScope(
       canPop: true,
@@ -215,126 +383,221 @@ class _WordEditorScreenState extends State<WordEditorScreen> {
       child: Scaffold(
         backgroundColor: isDark ? AppTheme.darkBg : const Color(0xFFF1F5F9),
         appBar: AppBar(
-          backgroundColor: isDark ? AppTheme.darkBg : Colors.white,
-          foregroundColor: isDark
-              ? AppTheme.darkTextPrimary
-              : AppTheme.lightTextPrimary,
+          backgroundColor: isDark ? AppTheme.darkSurface : Colors.white,
           elevation: 0,
-          scrolledUnderElevation: 0,
+          scrolledUnderElevation: 1,
           leading: IconButton(
             icon: const Icon(Icons.arrow_back_rounded),
             onPressed: () => Navigator.pop(context),
           ),
           titleSpacing: 0,
-          title: Row(
-            children: [
-              Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  color: isDark
-                      ? AppTheme.docBlue.withValues(alpha: 0.2)
-                      : AppTheme.docBlueLight,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: AppTheme.docBlue.withValues(alpha: 0.25),
-                    width: 1,
-                  ),
-                ),
-                child: const Icon(
-                  Icons.article_rounded,
-                  color: AppTheme.docBlue,
-                  size: 18,
-                ),
+          title: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => _showFullTitleSheet(displayTitle),
+            onLongPress: () => _showFullTitleSheet(displayTitle),
+            child: Text(
+              displayTitle,
+              maxLines: 2,
+              softWrap: true,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 14.5,
+                fontWeight: FontWeight.w700,
+                height: 1.25,
+                color: isDark ? Colors.white : const Color(0xFF0F172A),
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: TextField(
-                  controller: _titleController,
-                  style: TextStyle(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 16,
-                    letterSpacing: -0.2,
-                    color: isDark
-                        ? AppTheme.darkTextPrimary
-                        : AppTheme.lightTextPrimary,
-                  ),
-                  decoration: InputDecoration(
-                    border: InputBorder.none,
-                    hintText: 'Nama Dokumen',
-                    hintStyle: TextStyle(
-                      color: isDark
-                          ? AppTheme.darkTextSecondary
-                          : AppTheme.lightTextSecondary,
-                    ),
-                  ),
-                  onChanged: (_) => setState(() => _isDirty = true),
-                ),
-              ),
-            ],
+            ),
           ),
           actions: [
             IconButton(
+              visualDensity: VisualDensity.compact,
               icon: Icon(
-                Icons.info_outline_rounded,
-                color: isDark
-                    ? AppTheme.darkTextSecondary
-                    : AppTheme.lightTextSecondary,
+                Icons.edit_note_rounded,
+                size: 22,
+                color: isDark ? Colors.white70 : const Color(0xFF475569),
               ),
-              tooltip: 'Statistik Dokumen',
-              onPressed: _showStatsDialog,
+              tooltip: 'Ganti Nama Dokumen',
+              onPressed: _promptRename,
             ),
-            Padding(
-              padding: const EdgeInsets.only(right: 12),
-              child: _isSaving
+            IconButton(
+              visualDensity: VisualDensity.compact,
+              icon: _isSaving
                   ? const SizedBox(
-                      width: 20,
-                      height: 20,
+                      width: 18,
+                      height: 18,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : TextButton.icon(
-                      style: TextButton.styleFrom(
-                        backgroundColor: _isDirty
-                            ? AppTheme.primaryBlue
-                            : (isDark
-                                  ? AppTheme.darkSurface
-                                  : const Color(0xFFE2E8F0)),
-                        foregroundColor: _isDirty
-                            ? Colors.white
-                            : (isDark
-                                  ? AppTheme.darkTextSecondary
-                                  : AppTheme.lightTextSecondary),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 6,
-                        ),
-                      ),
-                      icon: Icon(
-                        Icons.save_rounded,
-                        size: 16,
-                        color: _isDirty
-                            ? Colors.white
-                            : (isDark
-                                  ? AppTheme.darkTextSecondary
-                                  : AppTheme.lightTextSecondary),
-                      ),
-                      label: Text(
-                        _isDirty ? 'Simpan' : 'Tersimpan',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      onPressed: _saveDocument,
+                  : Icon(
+                      Icons.save_rounded,
+                      size: 22,
+                      color: _isDirty
+                          ? AppTheme.primaryBlue
+                          : (isDark ? Colors.white54 : Colors.grey),
                     ),
+              tooltip: _isDirty ? 'Simpan Perubahan' : 'Sudah Tersimpan',
+              onPressed: _saveDocument,
+            ),
+            PopupMenuButton<String>(
+              icon: Icon(
+                Icons.more_vert_rounded,
+                size: 21,
+                color: isDark ? Colors.white70 : const Color(0xFF475569),
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              onSelected: (val) {
+                if (val == 'rename') _promptRename();
+                if (val == 'stats') _showStatsDialog();
+                if (val == 'copy') {
+                  Clipboard.setData(ClipboardData(text: _bodyController.text));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Semua teks disalin'),
+                      duration: Duration(seconds: 1),
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                }
+              },
+              itemBuilder: (context) => [
+                const PopupMenuItem(
+                  value: 'rename',
+                  child: Row(
+                    children: [
+                      Icon(Icons.edit_rounded, size: 18),
+                      SizedBox(width: 10),
+                      Text('Ganti Nama'),
+                    ],
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: 'copy',
+                  child: Row(
+                    children: [
+                      Icon(Icons.copy_rounded, size: 18),
+                      SizedBox(width: 10),
+                      Text('Salin Semua Teks'),
+                    ],
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: 'stats',
+                  child: Row(
+                    children: [
+                      Icon(Icons.info_outline_rounded, size: 18),
+                      SizedBox(width: 10),
+                      Text('Statistik Dokumen'),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ],
         ),
         body: Column(
           children: [
+            // Elegant Document Info Strip (Uniform across entire app!)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
+              decoration: BoxDecoration(
+                color: isDark
+                    ? const Color(0xFF111726)
+                    : const Color(0xFFF1F5F9),
+                border: Border(
+                  bottom: BorderSide(
+                    color: isDark
+                        ? AppTheme.darkBorder
+                        : const Color(0xFFE2E8F0),
+                    width: 0.8,
+                  ),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppTheme.docBlue.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: const Text(
+                      'WORD',
+                      style: TextStyle(
+                        fontSize: 9.5,
+                        fontWeight: FontWeight.w800,
+                        color: AppTheme.docBlue,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Icon(
+                    Icons.schedule_rounded,
+                    size: 13,
+                    color: isDark
+                        ? AppTheme.darkTextSecondary
+                        : AppTheme.lightTextSecondary,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    '${(_wordCount / 200).ceil().clamp(1, 999)} mnt baca',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: isDark
+                          ? AppTheme.darkTextSecondary
+                          : AppTheme.lightTextSecondary,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    '•',
+                    style: TextStyle(
+                      color: isDark
+                          ? const Color(0xFF475569)
+                          : const Color(0xFF94A3B8),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    '$_wordCount kata',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: isDark
+                          ? AppTheme.darkTextSecondary
+                          : AppTheme.lightTextSecondary,
+                    ),
+                  ),
+                  const Spacer(),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.format_size_rounded,
+                        size: 13,
+                        color: isDark
+                            ? AppTheme.darkTextSecondary
+                            : AppTheme.lightTextSecondary,
+                      ),
+                      const SizedBox(width: 3),
+                      Text(
+                        '${_fontSize.toInt()}pt',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: isDark
+                              ? AppTheme.darkTextSecondary
+                              : AppTheme.lightTextSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
             // Formatting Toolbar (WPS Style)
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
