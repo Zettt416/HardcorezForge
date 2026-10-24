@@ -9,7 +9,8 @@ class GuideStepItem {
   final String description;
   final IconData icon;
   final Color iconColor;
-  final Color iconBgColor;
+  final Color darkIconBgColor;
+  final Color lightIconBgColor;
   final List<String> tags;
 
   const GuideStepItem({
@@ -18,7 +19,8 @@ class GuideStepItem {
     required this.description,
     required this.icon,
     required this.iconColor,
-    required this.iconBgColor,
+    required this.darkIconBgColor,
+    required this.lightIconBgColor,
     required this.tags,
   });
 }
@@ -80,7 +82,8 @@ class _AppGuideOverlayState extends State<AppGuideOverlay>
           'Buat dan olah berkas secara 100% offline. Ketuk kartu Word untuk dokumen teks, Spreadsheet untuk tabel & formula Excel, Presentasi untuk slide deck, atau PDF Tools untuk baca & konversi berkas.',
       icon: Icons.dashboard_customize_rounded,
       iconColor: AppTheme.docBlue,
-      iconBgColor: Color(0xFF1E293B),
+      darkIconBgColor: Color(0xFF1E293B),
+      lightIconBgColor: Color(0xFFEEF2FF),
       tags: ['Word (.docx)', 'Excel (.xlsx)', 'Slide PPT', 'PDF Tools'],
     ),
     GuideStepItem(
@@ -90,7 +93,8 @@ class _AppGuideOverlayState extends State<AppGuideOverlay>
           'Gunakan kotak pencarian instan untuk menyaring dokumen, atau ketuk tombol folder untuk mengimpor berkas langsung dari memori internal HP. Filter dokumen berdasarkan kategori untuk kemudahan akses.',
       icon: Icons.folder_open_rounded,
       iconColor: Color(0xFF0284C7),
-      iconBgColor: Color(0xFF0C4A6E),
+      darkIconBgColor: Color(0xFF0C4A6E),
+      lightIconBgColor: Color(0xFFE0F2FE),
       tags: ['Pencarian Cepat', 'Pindai Berkas', 'Impor dari HP'],
     ),
     GuideStepItem(
@@ -100,7 +104,8 @@ class _AppGuideOverlayState extends State<AppGuideOverlay>
           'Bubuhkan paraf digital dan stempel legalitas langsung pada dokumen tanpa perlu mencetak kertas. Cukup ketuk ikon menu opsi (⋮) pada kartu berkas apa pun lalu pilih "Tanda Tangan & Stempel".',
       icon: Icons.draw_rounded,
       iconColor: AppTheme.brandCrimson,
-      iconBgColor: Color(0xFF450A0A),
+      darkIconBgColor: Color(0xFF450A0A),
+      lightIconBgColor: Color(0xFFFEF2F2),
       tags: ['Paraf & TTD', 'Stempel Resmi', 'Ekspor & Bagikan'],
     ),
   ];
@@ -154,10 +159,12 @@ class _AppGuideOverlayState extends State<AppGuideOverlay>
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return FadeTransition(
       opacity: _fadeAnimation,
       child: Material(
-        color: Colors.black.withValues(alpha: 0.75),
+        color: Colors.black.withValues(alpha: isDark ? 0.75 : 0.50),
         child: SafeArea(
           child: Center(
             child: SingleChildScrollView(
@@ -166,23 +173,29 @@ class _AppGuideOverlayState extends State<AppGuideOverlay>
                 constraints: const BoxConstraints(maxWidth: 420),
                 child: Container(
                   decoration: BoxDecoration(
-                    color: const Color(0xFF131B2E), // Obsidian Dark Canvas
+                    color: isDark ? const Color(0xFF131B2E) : Colors.white,
                     borderRadius: BorderRadius.circular(22),
                     border: Border.all(
-                      color: const Color(0xFF2E3D5C),
+                      color: isDark
+                          ? const Color(0xFF2E3D5C)
+                          : const Color(0xFFE2E8F0),
                       width: 1.2,
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.6),
+                        color: isDark
+                            ? Colors.black.withValues(alpha: 0.6)
+                            : const Color(0xFF0F172A).withValues(alpha: 0.12),
                         blurRadius: 28,
                         spreadRadius: 2,
-                        offset: const Offset(0, 10),
+                        offset: const Offset(0, 8),
                       ),
                       BoxShadow(
-                        color: AppTheme.brandCrimson.withValues(alpha: 0.12),
-                        blurRadius: 40,
-                        spreadRadius: 4,
+                        color: AppTheme.brandCrimson.withValues(
+                          alpha: isDark ? 0.12 : 0.08,
+                        ),
+                        blurRadius: isDark ? 40 : 20,
+                        spreadRadius: isDark ? 4 : 2,
                       ),
                     ],
                   ),
@@ -203,12 +216,12 @@ class _AppGuideOverlayState extends State<AppGuideOverlay>
                               ),
                               decoration: BoxDecoration(
                                 color: AppTheme.brandCrimson.withValues(
-                                  alpha: 0.18,
+                                  alpha: isDark ? 0.18 : 0.10,
                                 ),
                                 borderRadius: BorderRadius.circular(8),
                                 border: Border.all(
                                   color: AppTheme.brandCrimson.withValues(
-                                    alpha: 0.4,
+                                    alpha: isDark ? 0.4 : 0.25,
                                   ),
                                   width: 0.8,
                                 ),
@@ -216,16 +229,20 @@ class _AppGuideOverlayState extends State<AppGuideOverlay>
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  const Icon(
+                                  Icon(
                                     Icons.auto_awesome_rounded,
                                     size: 13,
-                                    color: Color(0xFFF87171),
+                                    color: isDark
+                                        ? const Color(0xFFF87171)
+                                        : AppTheme.brandCrimson,
                                   ),
                                   const SizedBox(width: 6),
                                   Text(
                                     _steps[_currentPage].stepTag,
-                                    style: const TextStyle(
-                                      color: Color(0xFFFCA5A5),
+                                    style: TextStyle(
+                                      color: isDark
+                                          ? const Color(0xFFFCA5A5)
+                                          : AppTheme.brandCrimson,
                                       fontSize: 11,
                                       fontWeight: FontWeight.w800,
                                       letterSpacing: 0.8,
@@ -238,9 +255,11 @@ class _AppGuideOverlayState extends State<AppGuideOverlay>
                             IconButton(
                               onPressed: _finishGuide,
                               tooltip: 'Lewati Panduan',
-                              icon: const Icon(
+                              icon: Icon(
                                 Icons.close_rounded,
-                                color: Color(0xFF94A3B8),
+                                color: isDark
+                                    ? const Color(0xFF94A3B8)
+                                    : const Color(0xFF64748B),
                                 size: 22,
                               ),
                             ),
@@ -269,18 +288,20 @@ class _AppGuideOverlayState extends State<AppGuideOverlay>
                                     width: 58,
                                     height: 58,
                                     decoration: BoxDecoration(
-                                      color: step.iconBgColor,
+                                      color: isDark
+                                          ? step.darkIconBgColor
+                                          : step.lightIconBgColor,
                                       shape: BoxShape.circle,
                                       border: Border.all(
                                         color: step.iconColor.withValues(
-                                          alpha: 0.5,
+                                          alpha: isDark ? 0.5 : 0.35,
                                         ),
                                         width: 1.5,
                                       ),
                                       boxShadow: [
                                         BoxShadow(
                                           color: step.iconColor.withValues(
-                                            alpha: 0.3,
+                                            alpha: isDark ? 0.3 : 0.15,
                                           ),
                                           blurRadius: 14,
                                         ),
@@ -298,8 +319,10 @@ class _AppGuideOverlayState extends State<AppGuideOverlay>
                                   Text(
                                     step.title,
                                     textAlign: TextAlign.center,
-                                    style: const TextStyle(
-                                      color: Colors.white,
+                                    style: TextStyle(
+                                      color: isDark
+                                          ? Colors.white
+                                          : const Color(0xFF0F172A),
                                       fontSize: 17,
                                       fontWeight: FontWeight.w800,
                                       letterSpacing: -0.2,
@@ -311,8 +334,10 @@ class _AppGuideOverlayState extends State<AppGuideOverlay>
                                   Text(
                                     step.description,
                                     textAlign: TextAlign.center,
-                                    style: const TextStyle(
-                                      color: Color(0xFF94A3B8),
+                                    style: TextStyle(
+                                      color: isDark
+                                          ? const Color(0xFF94A3B8)
+                                          : const Color(0xFF475569),
                                       fontSize: 12.5,
                                       height: 1.4,
                                       fontWeight: FontWeight.w400,
@@ -332,20 +357,26 @@ class _AppGuideOverlayState extends State<AppGuideOverlay>
                                           vertical: 3,
                                         ),
                                         decoration: BoxDecoration(
-                                          color: const Color(0xFF1E293B),
+                                          color: isDark
+                                              ? const Color(0xFF1E293B)
+                                              : const Color(0xFFF1F5F9),
                                           borderRadius: BorderRadius.circular(
                                             6,
                                           ),
                                           border: Border.all(
-                                            color: const Color(0xFF334155),
+                                            color: isDark
+                                                ? const Color(0xFF334155)
+                                                : const Color(0xFFE2E8F0),
                                             width: 0.8,
                                           ),
                                         ),
                                         child: Text(
                                           tag,
-                                          style: const TextStyle(
-                                            color: Color(0xFFCBD5E1),
-                                            fontSize: 11,
+                                          style: TextStyle(
+                                            color: isDark
+                                                ? const Color(0xFFCBD5E1)
+                                                : const Color(0xFF334155),
+                                            fontSize: 10.5,
                                             fontWeight: FontWeight.w600,
                                           ),
                                         ),
@@ -381,7 +412,9 @@ class _AppGuideOverlayState extends State<AppGuideOverlay>
                                   decoration: BoxDecoration(
                                     color: isActive
                                         ? AppTheme.brandCrimson
-                                        : const Color(0xFF334155),
+                                        : (isDark
+                                              ? const Color(0xFF334155)
+                                              : const Color(0xFFCBD5E1)),
                                     borderRadius: BorderRadius.circular(4),
                                   ),
                                 );
@@ -398,11 +431,13 @@ class _AppGuideOverlayState extends State<AppGuideOverlay>
                                     child: OutlinedButton(
                                       onPressed: _prevPage,
                                       style: OutlinedButton.styleFrom(
-                                        foregroundColor: const Color(
-                                          0xFF94A3B8,
-                                        ),
-                                        side: const BorderSide(
-                                          color: Color(0xFF334155),
+                                        foregroundColor: isDark
+                                            ? const Color(0xFF94A3B8)
+                                            : const Color(0xFF475569),
+                                        side: BorderSide(
+                                          color: isDark
+                                              ? const Color(0xFF334155)
+                                              : const Color(0xFFCBD5E1),
                                         ),
                                         shape: RoundedRectangleBorder(
                                           borderRadius: BorderRadius.circular(
@@ -427,10 +462,12 @@ class _AppGuideOverlayState extends State<AppGuideOverlay>
                                     flex: 1,
                                     child: TextButton(
                                       onPressed: _finishGuide,
-                                      child: const Text(
+                                      child: Text(
                                         'Lewati',
                                         style: TextStyle(
-                                          color: Color(0xFF94A3B8),
+                                          color: isDark
+                                              ? const Color(0xFF94A3B8)
+                                              : const Color(0xFF64748B),
                                           fontWeight: FontWeight.w600,
                                           fontSize: 13,
                                         ),
@@ -451,9 +488,10 @@ class _AppGuideOverlayState extends State<AppGuideOverlay>
                                       borderRadius: BorderRadius.circular(12),
                                       boxShadow: [
                                         BoxShadow(
-                                          color: const Color(
-                                            0xFFDC2626,
-                                          ).withValues(alpha: 0.35),
+                                          color: const Color(0xFFDC2626)
+                                              .withValues(
+                                                alpha: isDark ? 0.35 : 0.25,
+                                              ),
                                           blurRadius: 10,
                                           offset: const Offset(0, 3),
                                         ),

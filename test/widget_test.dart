@@ -167,5 +167,32 @@ void main() {
       expect(dismissed, isTrue);
       expect(tester.takeException(), isNull);
     });
+
+    testWidgets('Renders guide overlay seamlessly in Light Theme', (
+      tester,
+    ) async {
+      bool dismissed = false;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.lightTheme,
+          home: Scaffold(
+            body: AppGuideOverlay(onDismiss: () => dismissed = true),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(find.text('LANGKAH 1 DARI 3'), findsOneWidget);
+      expect(find.text('Modul Office Cepat'), findsOneWidget);
+      expect(find.text('Lewati'), findsOneWidget);
+
+      await tester.tap(find.text('Lewati'));
+      await tester.pumpAndSettle();
+
+      expect(dismissed, isTrue);
+      expect(tester.takeException(), isNull);
+    });
   });
 }
